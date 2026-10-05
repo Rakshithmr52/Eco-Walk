@@ -1,0 +1,19 @@
+{
+  "name": "ecowalk-mca-phase1",
+  "version": "1.0.0",
+  "description": "EcoWalk - Personalized Healthy Walking Route Recommendation System (Phase 1 MCA Project)",
+  "scripts": {
+    "server": "node server/server.js",
+    "client": "npm --prefix client run dev",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,green\" \"npm run server\" \"npm run client\"",
+    "start": "npm run dev",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build",
+    "test": "npm --prefix server test"
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "author": "EcoWalk MCA Project Team",
+  "license": "MIT"
+}
