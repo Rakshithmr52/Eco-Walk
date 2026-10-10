@@ -37,6 +37,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
+
 // Root developer & status landing page
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
