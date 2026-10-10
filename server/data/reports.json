@@ -142,14 +142,15 @@
     ],
     "issueType": "pothole",
     "severity": "high",
-    "status": "verified",
+    "status": "resolved",
     "description": "Deep circular pothole on pedestrian curb filled with loose gravel and sharp stones. High tripping hazard during morning rush.",
     "imageUrl": "",
     "reportedBy": "Aarav Sharma",
     "userEmail": "walker@ecowalk.local",
     "createdAt": "2026-09-18T14:20:00.000Z",
     "verifiedAt": "2026-09-19T10:15:00.000Z",
-    "adminNotes": "Civic repair team alerted. Barrier cone placed."
+    "adminNotes": "",
+    "resolvedAt": "2026-10-08T04:53:53.142Z"
   },
   {
     "id": "REP-102",
