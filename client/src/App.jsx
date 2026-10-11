@@ -7,7 +7,8 @@ import RoutePlanner from './pages/RoutePlanner';
 import HazardReportsPage from './pages/HazardReportsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthPage from './pages/AuthPage';
-import { MapPin, Menu, X, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { LeafShoeIcon } from './components/EcoWalkLogo';
+import { MapPin, Menu, X, ShieldAlert, ArrowLeft, User } from 'lucide-react';
 
 function MainLayout() {
   const { user } = useAuth();
@@ -71,7 +72,7 @@ function MainLayout() {
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(226, 232, 240, 0.7)'
         }}>
-          {/* Mobile Menu Hamburger - shown only when authenticated with sidebar */}
+          {/* Left: Mobile Menu Hamburger when authenticated, or Logo link when visitor */}
           {user ? (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -81,123 +82,139 @@ function MainLayout() {
               {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           ) : (
-            <div style={{ width: '24px' }} />
+            <div 
+              onClick={() => setActiveTab('dashboard')}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+              title="Return to EcoWalk Home"
+            >
+              <LeafShoeIcon size={28} />
+              <span style={{ fontWeight: '800', color: '#064E3B', fontSize: '1.15rem' }}>
+                Eco<span style={{ color: '#059669' }}>Walk</span>
+              </span>
+            </div>
           )}
 
           {/* Current Page Title */}
           <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1E293B' }}>
-            {!user ? '' : (
-              <>
-                {activeTab === 'dashboard' && 'EcoWalk Dashboard'}
-                {activeTab === 'planner' && 'Walking Route Planner'}
-                {activeTab === 'hazards' && 'Community Road Hazards'}
-                {activeTab === 'admin' && 'Administrator Portal'}
-              </>
-            )}
+            {activeTab === 'dashboard' && (user ? 'EcoWalk Dashboard' : '')}
+            {activeTab === 'planner' && 'Walking Route Planner'}
+            {activeTab === 'hazards' && 'Community Road Hazards'}
+            {activeTab === 'admin' && 'Administrator Portal'}
+            {activeTab === 'auth' && 'Authentication & Access'}
           </div>
 
-          {/* Top-Right Location Pill: "Bengaluru, Karnataka" (from Mockup) */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(255, 255, 255, 0.95)',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)',
-            border: '1px solid #D1FAE5',
-            padding: '6px 16px',
-            borderRadius: '9999px',
-            fontSize: '0.84rem',
-            fontWeight: '700',
-            color: '#065F46'
-          }}>
-            <MapPin size={16} color="#059669" />
-            <span>Bengaluru, Karnataka</span>
+          {/* Top-Right Pill and Sign-in button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {!user && (
+              <button
+                onClick={() => setActiveTab('auth')}
+                className="btn btn-primary btn-sm"
+                style={{ borderRadius: '9999px', padding: '6px 14px', fontSize: '0.82rem' }}
+              >
+                <User size={14} />
+                Sign In / Demo
+              </button>
+            )}
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)',
+              border: '1px solid #D1FAE5',
+              padding: '6px 16px',
+              borderRadius: '9999px',
+              fontSize: '0.84rem',
+              fontWeight: '700',
+              color: '#065F46'
+            }}>
+              <MapPin size={16} color="#059669" />
+              <span>Bengaluru, Karnataka</span>
+            </div>
           </div>
         </header>
 
         {/* Page Content Body */}
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {!user ? (
-            /* Unauthenticated: Show only Welcome, Sign In and Registration */
+          {activeTab === 'dashboard' && (
             <HomeDashboard 
               setActiveTab={handleTabChange} 
               onQuickPlan={handleQuickPlan} 
             />
-          ) : (
-            /* Authenticated: Full access to Dashboard, Planner, Hazards, and Admin */
-            <>
-              {activeTab === 'dashboard' && (
-                <HomeDashboard 
-                  setActiveTab={handleTabChange} 
-                  onQuickPlan={handleQuickPlan} 
-                />
-              )}
+          )}
 
-              {activeTab === 'planner' && (
-                <RoutePlanner 
-                  initialStart={plannerStart} 
-                  initialEnd={plannerEnd} 
-                />
-              )}
+          {activeTab === 'planner' && (
+            <RoutePlanner 
+              initialStart={plannerStart} 
+              initialEnd={plannerEnd} 
+            />
+          )}
 
-              {activeTab === 'hazards' && (
-                <HazardReportsPage />
-              )}
+          {activeTab === 'hazards' && (
+            <HazardReportsPage />
+          )}
 
-              {/* Strict Admin Gate */}
-              {activeTab === 'admin' && (
-                isAdmin ? (
-                  <AdminDashboard />
-                ) : (
+          {activeTab === 'auth' && (
+            <AuthPage onSuccess={() => setActiveTab('dashboard')} />
+          )}
+
+          {activeTab === 'admin' && (
+            isAdmin ? (
+              <AdminDashboard />
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '40px 20px'
+              }}>
+                <div className="card" style={{
+                  maxWidth: '480px',
+                  textAlign: 'center',
+                  padding: '36px',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                }}>
                   <div style={{
-                    flex: 1,
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FEE2E2',
+                    color: '#DC2626',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '40px 20px'
+                    margin: '0 auto 16px auto'
                   }}>
-                    <div className="card" style={{
-                      maxWidth: '480px',
-                      textAlign: 'center',
-                      padding: '36px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
-                    }}>
-                      <div style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 16px auto'
-                      }}>
-                        <ShieldAlert size={32} />
-                      </div>
-                      <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1E293B', marginBottom: '8px' }}>
-                        Administrator Access Required
-                      </h2>
-                      <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: '1.5', marginBottom: '24px' }}>
-                        The Admin Portal is strictly restricted to authorized administrators. Standard walker accounts do not have permission to view this section.
-                      </p>
-                      <button
-                        onClick={() => setActiveTab('dashboard')}
-                        className="btn btn-primary"
-                        style={{ width: '100%', justifyContent: 'center' }}
-                      >
-                        <ArrowLeft size={16} />
-                        Return to Dashboard
-                      </button>
-                    </div>
+                    <ShieldAlert size={32} />
                   </div>
-                )
-              )}
-
-              {activeTab === 'auth' && (
-                <AuthPage onSuccess={() => setActiveTab('dashboard')} />
-              )}
-            </>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1E293B', marginBottom: '8px' }}>
+                    Administrator Access Required
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: '1.5', marginBottom: '24px' }}>
+                    The Admin Portal is strictly restricted to authorized administrators. Standard walker accounts and guests do not have permission to view this section.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => setActiveTab('dashboard')}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      <ArrowLeft size={16} />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('auth')}
+                      className="btn btn-primary"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                    >
+                      Sign In as Admin
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           )}
         </main>
 

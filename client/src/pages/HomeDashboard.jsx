@@ -81,6 +81,12 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
     setAuthError('');
     setAuthLoading(true);
 
+    if (authMode === 'register' && password.length < 6) {
+      setAuthError('Password must be at least 6 characters long.');
+      setAuthLoading(false);
+      return;
+    }
+
     try {
       if (authMode === 'login') {
         await login(email, password);
@@ -649,7 +655,7 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
             </div>
 
             <form onSubmit={handleQuickRouteSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+              <div className="quick-search-grid">
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem' }}>Starting Point (A)</label>
                   <select

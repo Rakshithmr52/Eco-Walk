@@ -86,7 +86,27 @@ async function runTests() {
   });
   const adminToken = adminLogin.data.token;
 
-  // 3. Prevent Privilege Escalation on Registration
+  // 3. Registration Input & Password Validation
+  const shortPassRegister = await post('/api/auth/register', {
+    name: 'Short Pass User',
+    email: `short_${Date.now()}@ecowalk.local`,
+    password: '123'
+  });
+  test('Registration rejects short password (< 6 chars) with 400 Bad Request', () => {
+    assert.strictEqual(shortPassRegister.status, 400);
+    assert.ok(shortPassRegister.data.error.includes('6 characters'));
+  });
+
+  const invalidEmailRegister = await post('/api/auth/register', {
+    name: 'Bad Email User',
+    email: 'not-an-email-format',
+    password: 'validPassword123'
+  });
+  test('Registration rejects invalid email format with 400 Bad Request', () => {
+    assert.strictEqual(invalidEmailRegister.status, 400);
+    assert.ok(invalidEmailRegister.data.error.includes('valid email'));
+  });
+
   const testEmail = `test_walker_${Date.now()}@ecowalk.local`;
   const registerAttempt = await post('/api/auth/register', {
     name: 'Privilege Escalation Tester',
@@ -292,6 +312,95 @@ async function runTests() {
   });
   test('Updating preferences does NOT spuriously increment totalWalks', () => {
     assert.strictEqual(profileAfter.data.user.stats.totalWalks, initialWalkCount, 'Walks count must remain constant');
+  });
+
+  // 11. Admin User Directory Audit
+  const adminUsersRes = await get('/api/admin/users', {
+    Authorization: `Bearer ${adminToken}`
+  });
+  test('Admin can view registered user directory and sensitive hashes are excluded', () => {
+    assert.strictEqual(adminUsersRes.status, 200);
+    assert.ok(Array.isArray(adminUsersRes.data.users));
+    assert.ok(adminUsersRes.data.users.length >= 2);
+    adminUsersRes.data.users.forEach(u => {
+      assert.strictEqual(u.passwordHash, undefined, 'Password hash must never leak in admin user list');
+      assert.ok(u.id && u.email && u.role);
+    });
+  });
+
+  // 12. Multiple Bengaluru Landmark Route Pairs
+  const routePair1 = await post('/api/routes/recommend', {
+    startNodeId: 'L2', // Cubbon Park
+    endNodeId: 'L7',   // Indiranagar 100ft Road
+    walkingSpeed: 'moderate'
+  });
+  test('Route evaluation between L2 (Cubbon Park) and L7 (Indiranagar) produces plausible pedestrian routes', () => {
+    assert.strictEqual(routePair1.status, 200);
+    assert.ok(routePair1.data.recommendedRoute);
+    assert.ok(routePair1.data.recommendedRoute.distanceKm > 0 && routePair1.data.recommendedRoute.distanceKm < 15);
+    assert.ok(routePair1.data.recommendedRoute.estimatedMinutes > 0);
+    assert.ok(routePair1.data.recommendedRoute.waypoints.length >= 2);
+  });
+
+  const routePair2 = await post('/api/routes/recommend', {
+    startNodeId: 'L3', // MG Road Metro
+    endNodeId: 'L9',   // Koramangala 4th Block
+    walkingSpeed: 'moderate'
+  });
+  test('Route evaluation between L3 (MG Road) and L9 (Koramangala) calculates alternatives', () => {
+    assert.strictEqual(routePair2.status, 200);
+    assert.ok(routePair2.data.recommendedRoute);
+    assert.ok(routePair2.data.alternativeRoutes.length >= 1);
+  });
+
+  // 13. Preference Weight Effects on Recommendations
+  const recBalanced = await post('/api/routes/recommend', {
+    startNodeId: 'L1',
+    endNodeId: 'L4',
+    preferences: { prioritizeGreenery: false, prioritizeSafety: false }
+  });
+  const recGreenery = await post('/api/routes/recommend', {
+    startNodeId: 'L1',
+    endNodeId: 'L4',
+    preferences: { prioritizeGreenery: true }
+  });
+  test('Toggling prioritizeGreenery increases greenery weight in recommendation engine', () => {
+    assert.strictEqual(recBalanced.status, 200);
+    assert.strictEqual(recGreenery.status, 200);
+    const weightBalanced = recBalanced.data.recommendedRoute.weightsUsed.wG;
+    const weightGreenery = recGreenery.data.recommendedRoute.weightsUsed.wG;
+    assert.ok(weightGreenery > weightBalanced, 'Greenery weight must increase when prioritizeGreenery is true');
+  });
+
+  // 14. Map Landmark Coordinates & Plausibility
+  test('All 12 Bengaluru landmarks have valid coordinates within the vector canvas', () => {
+    const locs = locationsRes.data.locations;
+    assert.strictEqual(locs.length, 12);
+    locs.forEach(loc => {
+      assert.ok(loc.x >= 0 && loc.x <= 1000, `Landmark ${loc.id} x (${loc.x}) within [0, 1000]`);
+      assert.ok(loc.y >= 0 && loc.y <= 700, `Landmark ${loc.id} y (${loc.y}) within [0, 700]`);
+      assert.ok(loc.name && loc.shortName, `Landmark ${loc.id} has valid labels`);
+    });
+  });
+
+  // 15. Storage Persistence Verification
+  test('JSON storage correctly persists users, reports, routes, locations, and feedback', () => {
+    const diskUsers = storage.getUsers();
+    const diskReports = storage.getReports();
+    const diskFeedback = storage.getFeedback();
+    const diskLocations = storage.getLocations();
+    const diskRoutes = storage.getRoutes();
+
+    assert.ok(diskUsers.length >= 2, 'Users persisted in storage');
+    assert.ok(diskReports.length >= 1, 'Hazard reports persisted in storage');
+    assert.ok(diskFeedback.length >= 1, 'Feedback persisted in storage');
+    assert.strictEqual(diskLocations.length, 12, 'All 12 locations persisted in storage');
+    assert.ok(diskRoutes.length >= 10, 'Routes persisted in storage');
+
+    // Confirm created report is saved in disk storage
+    const foundReport = diskReports.find(r => r.id === createdReportId);
+    assert.ok(foundReport, 'Report created during test is persisted to storage');
+    assert.strictEqual(foundReport.status, 'resolved', 'Updated status is persisted to storage');
   });
 
   console.log(`\n========================================`);

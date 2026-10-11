@@ -11,16 +11,29 @@ exports.register = (req, res) => {
   try {
     const { name, email, password, role = 'walker', walkingSpeed = 'moderate', preferences } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required.' });
     }
 
-    const existing = storage.getUserByEmail(email);
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
+
+    const existing = storage.getUserByEmail(normalizedEmail);
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
     const authorizedAdminEmails = ['admin@ecowalk.local', 'rakshithmr52@gmail.com'];
     const assignedRole = (role === 'admin' && authorizedAdminEmails.includes(normalizedEmail)) ? 'admin' : 'walker';
 
@@ -87,7 +100,8 @@ exports.login = (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = storage.getUserByEmail(email);
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const user = storage.getUserByEmail(normalizedEmail);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }

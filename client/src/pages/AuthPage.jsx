@@ -26,6 +26,12 @@ export default function AuthPage({ onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!isLogin && password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
 
     try {

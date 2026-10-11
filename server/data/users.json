@@ -1,9 +1,9 @@
 [
   {
     "id": "U-DEMO-WALKER",
-    "name": "Aarav Sharma",
+    "name": "Rahul",
     "email": "walker@ecowalk.local",
-    "passwordHash": "$2a$08$SgdX2O5eWidxhRbuBXtZ4ejRpxc1qNliSzdky0s8LSVVsPB5KgQvG",
+    "passwordHash": "$2a$08$hc1z0vcCX1cyp0fNX1fSpeFR7hE1rlmU0JsobjtQDXpJBY6wCtcQW",
     "role": "walker",
     "walkingSpeed": "brisk",
     "preferences": {
@@ -23,7 +23,7 @@
       "totalWalks": 12,
       "totalCalories": 1140,
       "co2SavedKg": 3.15,
-      "reportsSubmitted": 3
+      "reportsSubmitted": 2
     },
     "createdAt": "2026-02-15T09:00:00.000Z"
   },
@@ -31,7 +31,7 @@
     "id": "U-DEMO-ADMIN",
     "name": "Rakshith",
     "email": "admin@ecowalk.local",
-    "passwordHash": "$2a$08$ut9xLr.1WZpsHhe4V4nDCuAMN2/plYW3nHfNm1FB79Zz7bFem2Vzy",
+    "passwordHash": "$2a$08$9uKL0N/WEAjG2keFYp5gtuSFlU3ItCuXknyYIr8T63H3IXaoL7UpW",
     "role": "admin",
     "walkingSpeed": "brisk",
     "preferences": {
@@ -47,75 +47,19 @@
       }
     },
     "stats": {
-      "totalDistanceKm": 37,
-      "totalWalks": 26,
-      "totalCalories": 2294,
-      "co2SavedKg": 6.33,
+      "totalDistanceKm": 34.2,
+      "totalWalks": 24,
+      "totalCalories": 2120,
+      "co2SavedKg": 5.85,
       "reportsSubmitted": 5
     },
     "createdAt": "2026-01-10T10:00:00.000Z"
   },
   {
-    "id": "U-1DEB8028",
-    "name": "rakshith",
-    "email": "rakshithmr52@gmail.com",
-    "passwordHash": "$2a$08$ut9xLr.1WZpsHhe4V4nDCuAMN2/plYW3nHfNm1FB79Zz7bFem2Vzy",
-    "role": "admin",
-    "walkingSpeed": "brisk",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-09-21T15:13:15.677Z"
-  },
-  {
-    "id": "U-A8B0DA84",
-    "name": "rahul",
-    "email": "25pg1bymca123@bmsit.in",
-    "passwordHash": "$2a$08$dqPqKB97lWHBQ7tIciGwqekkpknOgIZfempu9V7ukuHPqBaE9HkuC",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-09-28T14:06:32.447Z"
-  },
-  {
-    "id": "U-55D6E092",
+    "id": "U-DB08EBA8",
     "name": "Privilege Escalation Tester",
-    "email": "test_walker_1790994556107@ecowalk.local",
-    "passwordHash": "$2a$08$OKAjQexc3TLwJYe6US0.3.7KYOfbdRuZHpJV4n0XTwg9J.R1zpwsO",
+    "email": "test_walker_1791688075734@ecowalk.local",
+    "passwordHash": "$2a$08$7JFy7fvvADRkdKvM7YHhHO8FLblPQn2PXdEWp3T6z8VBBmCzBjoOy",
     "role": "walker",
     "walkingSpeed": "moderate",
     "preferences": {
@@ -137,90 +81,6 @@
       "co2SavedKg": 0,
       "reportsSubmitted": 0
     },
-    "createdAt": "2026-10-03T02:29:16.150Z"
-  },
-  {
-    "id": "U-6FB4297E",
-    "name": "Privilege Escalation Tester",
-    "email": "test_walker_1790994630625@ecowalk.local",
-    "passwordHash": "$2a$08$RlngmJt/b/T3T2CqSTCpw.wBpphGC5dyE1XznRTxQWSvx7.F.p4fO",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-10-03T02:30:30.665Z"
-  },
-  {
-    "id": "U-2DCD7E05",
-    "name": "Privilege Escalation Tester",
-    "email": "test_walker_1790994687722@ecowalk.local",
-    "passwordHash": "$2a$08$SJPmkB6MXvYEMeFLZ1M6P.2xGQOX5scaWLMRatvn1COearrw66iSW",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-10-03T02:31:27.775Z"
-  },
-  {
-    "id": "U-87453272",
-    "name": "Privilege Escalation Tester",
-    "email": "test_walker_1790996111998@ecowalk.local",
-    "passwordHash": "$2a$08$WKLo8vv4Y97AADwnEfNOv.SYs2WQQFvql.yibPRCKPsQWpOWJDJ16",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-10-03T02:55:12.048Z"
+    "createdAt": "2026-10-11T03:07:55.781Z"
   }
 ]

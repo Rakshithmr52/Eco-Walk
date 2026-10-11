@@ -170,13 +170,7 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
       )}
 
       {/* Main Grid: Control Panel & Vector Map Visualizer */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '380px 1fr',
-        gap: '24px',
-        marginBottom: '28px',
-        alignItems: 'start'
-      }}>
+      <div className="route-planner-grid">
         {/* Left Side: Route Controls & Preference Engine */}
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--slate-900)', marginBottom: '16px' }}>

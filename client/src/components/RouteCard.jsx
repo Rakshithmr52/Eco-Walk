@@ -138,16 +138,7 @@ export default function RouteCard({
         </div>
 
         {/* Primary Walking Metrics Strip */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '10px',
-          background: 'var(--slate-50)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px',
-          margin: '16px 0',
-          border: '1px solid var(--slate-200)'
-        }}>
+        <div className="route-metrics-strip">
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--slate-500)', fontWeight: '600' }}>DISTANCE</div>
             <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--slate-900)' }}>

@@ -416,3 +416,46 @@ a {
   }
 }
 
+/* Responsive Grid Utilities */
+.route-planner-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+  align-items: start;
+}
+
+.route-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin: 16px 0;
+  border: 1px solid var(--slate-200);
+}
+
+.quick-search-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .route-planner-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .route-metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .quick-search-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
