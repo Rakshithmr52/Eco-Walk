@@ -112,7 +112,7 @@ function MainLayout() {
                 style={{ borderRadius: '9999px', padding: '6px 14px', fontSize: '0.82rem' }}
               >
                 <User size={14} />
-                Sign In / Demo
+                Sign In
               </button>
             )}
 

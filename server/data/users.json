@@ -3,9 +3,9 @@
     "id": "U-DEMO-WALKER",
     "name": "Rahul",
     "email": "walker@ecowalk.local",
-    "passwordHash": "$2a$08$hc1z0vcCX1cyp0fNX1fSpeFR7hE1rlmU0JsobjtQDXpJBY6wCtcQW",
+    "passwordHash": "$2a$08$jVQMj40R.GuNoHy5MC9TWOsR5d246rfs2vhsBN1CM1OeJrNmmZhxW",
     "role": "walker",
-    "walkingSpeed": "brisk",
+    "walkingSpeed": "moderate",
     "preferences": {
       "prioritizeGreenery": true,
       "prioritizeSafety": true,
@@ -31,7 +31,7 @@
     "id": "U-DEMO-ADMIN",
     "name": "Rakshith",
     "email": "admin@ecowalk.local",
-    "passwordHash": "$2a$08$9uKL0N/WEAjG2keFYp5gtuSFlU3ItCuXknyYIr8T63H3IXaoL7UpW",
+    "passwordHash": "$2a$08$kU0yszfNqswVkVHnRw9V1Ouh3V4/Gl8duDY8z6dGntiWoegg95cF6",
     "role": "admin",
     "walkingSpeed": "brisk",
     "preferences": {
@@ -54,33 +54,5 @@
       "reportsSubmitted": 5
     },
     "createdAt": "2026-01-10T10:00:00.000Z"
-  },
-  {
-    "id": "U-DB08EBA8",
-    "name": "Privilege Escalation Tester",
-    "email": "test_walker_1791688075734@ecowalk.local",
-    "passwordHash": "$2a$08$7JFy7fvvADRkdKvM7YHhHO8FLblPQn2PXdEWp3T6z8VBBmCzBjoOy",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-10-11T03:07:55.781Z"
   }
 ]

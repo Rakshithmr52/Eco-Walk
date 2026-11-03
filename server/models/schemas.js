@@ -61,7 +61,7 @@ const ReportSchema = {
   routeId: { type: String, required: true },
   routeName: { type: String },
   locationName: { type: String, required: true },
-  coordinates: [Number],
+  coordinates: [Number], // Real geographic [latitude, longitude]
   issueType: { 
     type: String, 
     enum: ['pothole', 'drainage', 'unsafe_lighting', 'obstruction', 'uneven_pavement'], 
@@ -74,16 +74,20 @@ const ReportSchema = {
   },
   status: { 
     type: String, 
-    enum: ['pending', 'verified', 'resolved'], 
+    enum: ['pending', 'verified', 'resolved', 'rejected'], 
     default: 'pending' 
   },
   description: { type: String, required: true },
   imageUrl: { type: String },
   reportedBy: { type: String, required: true },
   userEmail: { type: String, required: true },
+  confirmations: { type: Number, default: 1 },
+  confirmedBy: [{ type: String }],
+  lastConfirmedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
   verifiedAt: { type: Date },
   resolvedAt: { type: Date },
+  rejectedAt: { type: Date },
   adminNotes: { type: String }
 };
 

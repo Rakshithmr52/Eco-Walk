@@ -1,9 +1,10 @@
 const storage = require('../models/storage');
 const config = require('../config/config');
+const routingService = require('./routingService');
 
 /**
  * Multi-Criteria Rule-Based Healthy Route Recommendation Engine (Phase 1 Core)
- * Evaluates candidate routes connecting start and destination landmarks using:
+ * Evaluates candidate routes connecting real GPS origin and destination using:
  * 1. Greenery Canopy Score (G)
  * 2. Pedestrian Safety Score (S)
  * 3. Traffic & Vehicular Emission Risk (P) -> inverted as Clean Air Index (100 - P)
@@ -17,6 +18,25 @@ const PACE_SPEEDS = {
   moderate: 4.8,  // km/h
   brisk: 5.6      // km/h
 };
+
+// Known urban green canopy zones & parks for proximity evaluation
+const KNOWN_GREEN_ZONES = [
+  { name: 'Lalbagh Botanical Gardens', lat: 12.9507, lng: 77.5848, radiusKm: 0.9, baseGreenery: 95, pollutionRisk: 14 },
+  { name: 'Cubbon Park Arboretum', lat: 12.9763, lng: 77.5929, radiusKm: 0.9, baseGreenery: 92, pollutionRisk: 18 },
+  { name: 'Ulsoor Lake Promenade', lat: 12.9815, lng: 77.6201, radiusKm: 0.7, baseGreenery: 90, pollutionRisk: 22 },
+  { name: 'IISc Green Spine', lat: 13.0219, lng: 77.5671, radiusKm: 0.8, baseGreenery: 94, pollutionRisk: 15 },
+  { name: 'Sankey Tank Forest Trail', lat: 13.0068, lng: 77.5750, radiusKm: 0.6, baseGreenery: 92, pollutionRisk: 16 },
+  { name: 'Hebbal Wetland Sanctuary', lat: 13.0382, lng: 77.5913, radiusKm: 0.8, baseGreenery: 96, pollutionRisk: 12 },
+  { name: 'Jayanagar Tree Boulevard', lat: 12.9299, lng: 77.5824, radiusKm: 0.6, baseGreenery: 86, pollutionRisk: 28 },
+  { name: 'Kanteerava Sports Perimeter', lat: 12.9698, lng: 77.5932, radiusKm: 0.5, baseGreenery: 78, pollutionRisk: 35 }
+];
+
+// Heavy transit / elevated vehicular pollution corridors
+const HIGH_EMISSION_CORRIDORS = [
+  { name: 'Majestic Kempegowda Terminal', lat: 12.9781, lng: 77.5696, radiusKm: 0.7, pollutionRisk: 82 },
+  { name: 'Gandhi Bazaar Commercial Market', lat: 12.9438, lng: 77.5707, radiusKm: 0.5, pollutionRisk: 70 },
+  { name: 'Bengaluru Fort Main Arterial', lat: 12.9629, lng: 77.5759, radiusKm: 0.5, pollutionRisk: 68 }
+];
 
 /**
  * Calculates dynamic penalty based on active hazard reports along a route
@@ -49,6 +69,72 @@ function calculateHazardPenalty(routeId) {
     penalty: Math.min(penalty, 60), // capped at 60 max penalty
     reportCount: activeReports.length,
     reportDetails: activeReports
+  };
+}
+
+/**
+ * Calculates dynamic penalty based on geographic proximity of active hazard reports to a route polyline
+ */
+function calculateGeoHazardPenalty(waypoints = []) {
+  if (!waypoints || waypoints.length === 0) {
+    return { penalty: 0, reportCount: 0, reportDetails: [] };
+  }
+
+  const allReports = storage.getReports();
+  const activeReports = allReports.filter(r => r.status === 'pending' || r.status === 'verified');
+  const matchedReports = [];
+  let penalty = 0;
+
+  for (const report of activeReports) {
+    let rLat, rLng;
+    if (Array.isArray(report.coordinates) && report.coordinates.length >= 2) {
+      rLat = report.coordinates[0];
+      rLng = report.coordinates[1];
+    } else if (report.lat && report.lng) {
+      rLat = report.lat;
+      rLng = report.lng;
+    }
+
+    if (rLat === undefined || rLng === undefined) continue;
+
+    // Check if report lies within 150m (0.15km) of any sampled waypoint
+    const sampleRate = Math.max(1, Math.floor(waypoints.length / 40));
+    let isNearRoute = false;
+
+    for (let i = 0; i < waypoints.length; i += sampleRate) {
+      const [wLat, wLng] = waypoints[i];
+      const distKm = routingService.haversineDistance(rLat, rLng, wLat, wLng);
+      if (distKm <= 0.15) {
+        isNearRoute = true;
+        break;
+      }
+    }
+
+    if (isNearRoute) {
+      matchedReports.push(report);
+      switch (report.severity) {
+        case 'critical':
+          penalty += 25;
+          break;
+        case 'high':
+          penalty += 15;
+          break;
+        case 'moderate':
+          penalty += 8;
+          break;
+        case 'low':
+          penalty += 4;
+          break;
+        default:
+          penalty += 5;
+      }
+    }
+  }
+
+  return {
+    penalty: Math.min(penalty, 60),
+    reportCount: matchedReports.length,
+    reportDetails: matchedReports
   };
 }
 
@@ -99,6 +185,118 @@ function deriveWeights(preferences = {}) {
 }
 
 /**
+ * Spatial analysis to evaluate environmental metrics for a real GPS route
+ */
+function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
+  if (!waypoints || waypoints.length === 0) {
+    return {
+      greeneryScore: 60,
+      safetyScore: 80,
+      trafficPollutionRisk: 40,
+      roadConditionScore: 85
+    };
+  }
+
+  // Sample waypoints along polyline for proximity checking
+  const sampleStep = Math.max(1, Math.floor(waypoints.length / 30));
+  let greenMatches = 0;
+  let totalSamples = 0;
+  let pollutionRiskSum = 0;
+
+  for (let i = 0; i < waypoints.length; i += sampleStep) {
+    const [wLat, wLng] = waypoints[i];
+    totalSamples++;
+
+    // Proximity to green canopies
+    let inGreenZone = false;
+    for (const gz of KNOWN_GREEN_ZONES) {
+      const d = routingService.haversineDistance(wLat, wLng, gz.lat, gz.lng);
+      if (d <= gz.radiusKm) {
+        inGreenZone = true;
+        break;
+      }
+    }
+    if (inGreenZone) greenMatches++;
+
+    // Proximity to emission corridors
+    let localRisk = 35; // baseline moderate urban emission
+    for (const em of HIGH_EMISSION_CORRIDORS) {
+      const d = routingService.haversineDistance(wLat, wLng, em.lat, em.lng);
+      if (d <= em.radiusKm) {
+        localRisk = Math.max(localRisk, em.pollutionRisk);
+      }
+    }
+    if (inGreenZone) {
+      localRisk = Math.min(localRisk, 22); // tree canopy filters particulate
+    }
+    pollutionRiskSum += localRisk;
+  }
+
+  // Step semantic clues from OpenStreetMap / OpenRouteService
+  let pedestrianSteps = 0;
+  let parkKeywordSteps = 0;
+  const totalSteps = Math.max(1, steps.length);
+
+  for (const step of steps) {
+    const name = (step.name || '').toLowerCase();
+    const instruction = (step.instruction || '').toLowerCase();
+    if (
+      name.includes('park') || name.includes('garden') || name.includes('lake') ||
+      name.includes('trail') || name.includes('walkway') || name.includes('path') ||
+      name.includes('promenade') || name.includes('green') || name.includes('avenue')
+    ) {
+      parkKeywordSteps++;
+    }
+    if (
+      instruction.includes('walk') || instruction.includes('footway') ||
+      instruction.includes('pedestrian') || instruction.includes('path') ||
+      instruction.includes('steps') || instruction.includes('cycle')
+    ) {
+      pedestrianSteps++;
+    }
+  }
+
+  const greenFraction = totalSamples > 0 ? (greenMatches / totalSamples) : 0.3;
+  const parkStepFraction = parkKeywordSteps / totalSteps;
+  const pedStepFraction = pedestrianSteps / totalSteps;
+
+  // Synthesize metrics
+  // Greenery: 35 baseline + up to 60 from green buffer & park steps
+  let greeneryScore = Math.round(35 + (greenFraction * 45) + (parkStepFraction * 20));
+  greeneryScore = Math.max(25, Math.min(96, greeneryScore));
+
+  // Pedestrian Safety: 70 baseline + step infrastructure
+  let safetyScore = Math.round(70 + (pedStepFraction * 22) + (greenFraction * 8));
+  safetyScore = Math.max(55, Math.min(95, safetyScore));
+
+  // Traffic Pollution Risk
+  let trafficPollutionRisk = Math.round(totalSamples > 0 ? (pollutionRiskSum / totalSamples) : 40);
+  trafficPollutionRisk = Math.max(12, Math.min(85, trafficPollutionRisk));
+
+  // Road Condition Score
+  let roadConditionScore = 92;
+
+  // Differentiate alternative candidate routes slightly if multiple alternatives exist
+  if (routeIndex === 1) {
+    // Usually alternative 1 in ORS or OSRM is a slightly different avenue
+    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.85));
+    safetyScore = Math.max(55, Math.round(safetyScore * 0.92));
+    trafficPollutionRisk = Math.min(85, Math.round(trafficPollutionRisk * 1.2));
+  } else if (routeIndex > 1) {
+    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.75));
+    safetyScore = Math.max(55, Math.round(safetyScore * 0.88));
+    trafficPollutionRisk = Math.min(85, Math.round(trafficPollutionRisk * 1.3));
+  }
+
+  return {
+    greeneryScore,
+    safetyScore,
+    trafficPollutionRisk,
+    roadConditionScore
+  };
+}
+
+/**
  * Generates natural language recommendation reasons explaining the rule-based logic
  */
 function generateRecommendationReasons(route, isBestMatch, rankDelta = null) {
@@ -141,77 +339,122 @@ function generateRecommendationReasons(route, isBestMatch, rankDelta = null) {
 }
 
 /**
- * Main Recommendation Function
+ * Main Real GPS Recommendation Function
+ * Takes real geographic coordinates, fetches real walking routes from OpenRouteService (or OSRM),
+ * and evaluates candidate paths using the capstone health engine algorithm.
  */
-function evaluateAndRecommendRoutes(startNodeId, endNodeId, userPreferences = {}, walkingSpeed = 'moderate') {
-  // Fetch candidate routes between the two landmarks
-  let candidates = storage.getRoutesBetweenNodes(startNodeId, endNodeId);
-
-  // If no direct predefined route exists between these exact 2 nodes,
-  // we intelligently assemble virtual multi-segment candidate paths from the graph of landmarks
-  if (!candidates || candidates.length === 0) {
-    candidates = generateGraphCandidates(startNodeId, endNodeId);
-  }
-
-  if (!candidates || candidates.length === 0) {
-    return {
-      success: false,
-      message: 'No walking paths found connecting the selected landmarks.',
-      routes: []
-    };
-  }
-
+async function evaluateAndRecommendRealRoutes({
+  startCoords,
+  destinationCoords,
+  startLabel = 'Current GPS Location',
+  destinationLabel = 'Destination Landmark',
+  userPreferences = {},
+  walkingSpeed = 'moderate'
+}) {
+  // 1. Fetch real walking routes from OpenRouteService / OSRM
+  const routingResult = await routingService.getWalkingRoutes(startCoords, destinationCoords);
+  const features = routingResult.features;
   const speedKmph = PACE_SPEEDS[walkingSpeed] || config.AVERAGE_WALKING_SPEED_KMPH;
   const weights = deriveWeights(userPreferences);
 
-  // Evaluate each candidate route
-  const evaluatedRoutes = candidates.map(route => {
-    // 1. Hazard penalties
-    const hazardData = calculateHazardPenalty(route.id);
-    const effectiveRoadCondition = Math.max(10, route.roadConditionScore - hazardData.penalty);
+  // Find min distance among candidates for relative penalty
+  const distances = features.map(f => (f.properties?.summary?.distance || 1000) / 1000);
+  const minDistanceKm = Math.min(...distances);
 
-    // 2. Clean air index
-    const cleanAirScore = Math.max(0, 100 - route.trafficPollutionRisk);
+  // 2. Evaluate each real route candidate
+  const evaluatedRoutes = features.map((feature, index) => {
+    // Coordinates conversion: GeoJSON [lng, lat] -> Leaflet [lat, lng]
+    const rawCoords = feature.geometry?.coordinates || [];
+    const waypoints = rawCoords.map(pt => [pt[1], pt[0]]);
+    const summary = feature.properties?.summary || {};
+    const steps = feature.properties?.segments?.[0]?.steps || [];
 
-    // 3. Multi-Attribute Utility Health Score (0 - 100 scale)
+    const distanceKm = Number(((summary.distance || 1000) / 1000).toFixed(2));
+    const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmph) * 60));
+
+    // Environmental metrics via spatial proximity and step semantics
+    const env = evaluateRouteEnvironment(waypoints, steps, index);
+    
+    // Dynamic hazard deduction based on real GPS proximity to active reports
+    const hazardData = calculateGeoHazardPenalty(waypoints);
+    const effectiveRoadCondition = Math.max(10, env.roadConditionScore - hazardData.penalty);
+
+    // Clean air index
+    const cleanAirScore = Math.max(0, 100 - env.trafficPollutionRisk);
+
+    // Multi-Attribute Utility Health Score (0 - 100 scale)
     const rawHealthScore = (
-      (weights.wG * route.greeneryScore) +
-      (weights.wS * route.safetyScore) +
+      (weights.wG * env.greeneryScore) +
+      (weights.wS * env.safetyScore) +
       (weights.wA * cleanAirScore) +
       (weights.wR * effectiveRoadCondition)
     );
 
-    // Distance penalty factor: mild penalty if route is significantly longer than 2.0 km
-    const distancePenalty = route.distanceKm > 2.0 ? (route.distanceKm - 2.0) * 4 : 0;
+    // Mild distance penalty if route is significantly longer than shortest candidate by > 1.2 km
+    const distDelta = distanceKm - minDistanceKm;
+    const distancePenalty = distDelta > 1.2 ? (distDelta - 1.2) * 5 : 0;
     const healthScore = Math.max(0, Math.min(100, Math.round(rawHealthScore - distancePenalty)));
 
-    // Walking metrics
-    const estimatedMinutes = Math.round((route.distanceKm / speedKmph) * 60);
-    const caloriesBurned = Math.round(route.distanceKm * config.CALORIES_PER_KM);
-    const co2SavedGrams = Math.round(route.distanceKm * config.CO2_SAVED_PER_KM_GRAMS);
+    // Calories & CO2 math
+    const caloriesBurned = Math.round(distanceKm * config.CALORIES_PER_KM);
+    const co2SavedGrams = Math.round(distanceKm * config.CO2_SAVED_PER_KM_GRAMS);
 
     // Air Quality rating tag
     let airQualityTag = 'Good';
-    if (route.trafficPollutionRisk > 65) airQualityTag = 'Moderate Exhaust';
-    if (route.trafficPollutionRisk > 80) airQualityTag = 'Heavy Pollution';
+    if (env.trafficPollutionRisk > 60) airQualityTag = 'Moderate Exhaust';
+    if (env.trafficPollutionRisk > 75) airQualityTag = 'Heavy Pollution';
+
+    // Route title & tags
+    const routeTitles = [
+      'Eco-Shaded Green Walking Corridor',
+      'Direct Urban Street Route',
+      'Alternate Transit Avenue'
+    ];
+    const name = `${startLabel} to ${destinationLabel} (${routeTitles[index] || `Option ${index + 1}`})`;
+    const tag = index === 0 ? 'Primary Walking Route' : 'Alternative Walking Path';
 
     return {
-      ...route,
+      id: `ROUTE-REAL-${index + 1}-${Date.now().toString(36)}`,
+      name,
+      tag,
+      routeType: env.greeneryScore >= 75 ? 'nature_focused' : 'arterial_road',
+      startCoords,
+      destinationCoords,
+      startLabel,
+      destinationLabel,
+      distanceKm,
+      estimatedMinutes,
+      greeneryScore: env.greeneryScore,
+      safetyScore: env.safetyScore,
+      trafficPollutionRisk: env.trafficPollutionRisk,
+      roadConditionScore: env.roadConditionScore,
       effectiveRoadCondition,
       hazardData,
       healthScore,
-      estimatedMinutes,
       caloriesBurned,
       co2SavedGrams,
       airQualityTag,
+      waypoints,
+      stepsCount: steps.length,
+      terrainType: env.greeneryScore >= 80 ? 'Shaded Sidewalk & Pedestrian Verges' : 'Urban Paved Sidewalk',
+      description: `Actual walking route generated via real geographic routing network from ${startLabel} to ${destinationLabel}.`,
+      highlights: [
+        `${env.greeneryScore}% Estimated Greenery & Shade Index`,
+        `${env.safetyScore}/100 Pedestrian Safety Score`,
+        `Clean Air Index: ${cleanAirScore}/100`,
+        `${hazardData.reportCount} Active community hazard alerts detected along path`
+      ],
+      warnings: hazardData.reportCount > 0 ? [`Caution: ${hazardData.reportCount} road hazard(s) flagged near this route.`] : [],
+      // Clearly disclose environmental data source as required
+      environmentalDataSource: 'Proximity to mapped green canopy buffers & OpenStreetMap pedestrian infrastructure classification. Direct real-time sensor IoT telemetry unavailable for this segment.',
       weightsUsed: weights
     };
   });
 
-  // Sort candidate routes: primary key is healthScore descending
+  // Sort candidate routes by healthScore descending
   evaluatedRoutes.sort((a, b) => b.healthScore - a.healthScore);
 
-  // Mark recommended vs alternatives and generate reasons
+  // Mark recommended vs alternatives
   const bestRoute = evaluatedRoutes[0];
   bestRoute.isRecommended = true;
   bestRoute.recommendationBadge = 'Best Health Match';
@@ -226,8 +469,11 @@ function evaluateAndRecommendRoutes(startNodeId, endNodeId, userPreferences = {}
 
   return {
     success: true,
-    startNode: storage.getLocationById(startNodeId),
-    endNode: storage.getLocationById(endNodeId),
+    startCoords,
+    destinationCoords,
+    startLabel,
+    destinationLabel,
+    routingProvider: routingResult.provider,
     userPreferences,
     recommendedRoute: bestRoute,
     alternativeRoutes,
@@ -236,20 +482,113 @@ function evaluateAndRecommendRoutes(startNodeId, endNodeId, userPreferences = {}
 }
 
 /**
- * Fallback graph path synthesizer for pairs without direct single-edge route
+ * Evaluates routes connecting predefined district landmarks (for landmark queries and regression tests)
  */
-function generateGraphCandidates(startId, endId) {
+function evaluateAndRecommendRoutes(startNodeId, endNodeId, userPreferences = {}, walkingSpeed = 'moderate') {
+  const startLoc = storage.getLocationById(startNodeId);
+  const endLoc = storage.getLocationById(endNodeId);
+
+  // Fetch candidate routes between the two landmarks
+  let candidates = storage.getRoutesBetweenNodes(startNodeId, endNodeId);
+  if (!candidates || candidates.length === 0) {
+    candidates = generateFallbackGraphCandidates(startNodeId, endNodeId);
+  }
+
+  if (!candidates || candidates.length === 0) {
+    return {
+      success: false,
+      message: 'No walking paths found connecting the selected landmarks.',
+      routes: []
+    };
+  }
+
+  const speedKmph = PACE_SPEEDS[walkingSpeed] || config.AVERAGE_WALKING_SPEED_KMPH;
+  const weights = deriveWeights(userPreferences);
+
+  const evaluatedRoutes = candidates.map(route => {
+    const hazardData = calculateHazardPenalty(route.id);
+    const effectiveRoadCondition = Math.max(10, route.roadConditionScore - hazardData.penalty);
+    const cleanAirScore = Math.max(0, 100 - route.trafficPollutionRisk);
+
+    const rawHealthScore = (
+      (weights.wG * route.greeneryScore) +
+      (weights.wS * route.safetyScore) +
+      (weights.wA * cleanAirScore) +
+      (weights.wR * effectiveRoadCondition)
+    );
+
+    const distancePenalty = route.distanceKm > 2.0 ? (route.distanceKm - 2.0) * 4 : 0;
+    const healthScore = Math.max(0, Math.min(100, Math.round(rawHealthScore - distancePenalty)));
+    const estimatedMinutes = Math.round((route.distanceKm / speedKmph) * 60);
+    const caloriesBurned = Math.round(route.distanceKm * config.CALORIES_PER_KM);
+    const co2SavedGrams = Math.round(route.distanceKm * config.CO2_SAVED_PER_KM_GRAMS);
+
+    let airQualityTag = 'Good';
+    if (route.trafficPollutionRisk > 65) airQualityTag = 'Moderate Exhaust';
+    if (route.trafficPollutionRisk > 80) airQualityTag = 'Heavy Pollution';
+
+    // Map waypoints to lat/lng if they are in pixel space
+    const waypoints = (route.waypoints || []).map(pt => {
+      if (pt[0] > 90 || pt[1] > 180) {
+        return [12.93 + (pt[1] / 700) * 0.1, 77.56 + (pt[0] / 1000) * 0.08];
+      }
+      return pt;
+    });
+
+    return {
+      ...route,
+      waypoints,
+      effectiveRoadCondition,
+      hazardData,
+      healthScore,
+      estimatedMinutes,
+      caloriesBurned,
+      co2SavedGrams,
+      airQualityTag,
+      weightsUsed: weights
+    };
+  });
+
+  evaluatedRoutes.sort((a, b) => b.healthScore - a.healthScore);
+
+  const bestRoute = evaluatedRoutes[0];
+  bestRoute.isRecommended = true;
+  bestRoute.recommendationBadge = 'Best Health Match';
+  bestRoute.recommendationReasons = generateRecommendationReasons(bestRoute, true);
+
+  const alternativeRoutes = evaluatedRoutes.slice(1).map(alt => {
+    alt.isRecommended = false;
+    alt.recommendationBadge = alt.distanceKm < bestRoute.distanceKm ? 'Shorter Distance' : 'Alternative Path';
+    alt.recommendationReasons = generateRecommendationReasons(alt, false);
+    return alt;
+  });
+
+  return {
+    success: true,
+    startNode: startLoc,
+    endNode: endLoc,
+    userPreferences,
+    recommendedRoute: bestRoute,
+    alternativeRoutes,
+    totalRoutesEvaluated: evaluatedRoutes.length
+  };
+}
+
+/**
+ * Fallback synthesizer for offline mode
+ */
+function generateFallbackGraphCandidates(startId, endId) {
   const startLoc = storage.getLocationById(startId);
   const endLoc = storage.getLocationById(endId);
   if (!startLoc || !endLoc) return [];
 
-  // Approximate Euclidean distance on 1000x700 plane: 100 pixels ~ 0.4 km
-  const dx = endLoc.x - startLoc.x;
-  const dy = endLoc.y - startLoc.y;
-  const pixelDist = Math.sqrt(dx * dx + dy * dy);
-  const baseKm = Number(((pixelDist / 100) * 0.45).toFixed(1));
+  const sLat = startLoc.lat || (startLoc.y ? 12.93 + (startLoc.y / 700) * 0.1 : 12.95);
+  const sLng = startLoc.lng || (startLoc.x ? 77.56 + (startLoc.x / 1000) * 0.08 : 77.58);
+  const eLat = endLoc.lat || (endLoc.y ? 12.93 + (endLoc.y / 700) * 0.1 : 12.98);
+  const eLng = endLoc.lng || (endLoc.x ? 77.56 + (endLoc.x / 1000) * 0.08 : 77.60);
 
-  // Candidate 1: Shaded Park & Garden Route
+  const baseKm = Number(routingService.haversineDistance(sLat, sLng, eLat, eLng).toFixed(1)) || 1.4;
+
   const route1 = {
     id: `R-SYN-${startId}-${endId}-1`,
     name: `${startLoc.shortName} to ${endLoc.shortName} Green Trail`,
@@ -259,25 +598,23 @@ function generateGraphCandidates(startId, endId) {
     startNodeName: startLoc.name,
     endNodeId: endId,
     endNodeName: endLoc.name,
-    distanceKm: Number((baseKm * 1.15).toFixed(1)),
+    distanceKm: Number((baseKm * 1.12).toFixed(1)),
     greeneryScore: 89,
     safetyScore: 92,
     trafficPollutionRisk: 18,
     roadConditionScore: 93,
     terrainType: 'Pedestrian Pavers & Tree-Lined Avenues',
-    elevationGainMeters: 4,
     waypoints: [
-      [startLoc.x, startLoc.y],
-      [Math.round(startLoc.x + dx * 0.4 - dy * 0.15), Math.round(startLoc.y + dy * 0.4 + dx * 0.15)],
-      [Math.round(startLoc.x + dx * 0.7 - dy * 0.1), Math.round(startLoc.y + dy * 0.7 + dx * 0.1)],
-      [endLoc.x, endLoc.y]
+      [sLat, sLng],
+      [sLat + (eLat - sLat) * 0.4 - 0.003, sLng + (eLng - sLng) * 0.4 + 0.003],
+      [sLat + (eLat - sLat) * 0.7 - 0.002, sLng + (eLng - sLng) * 0.7 + 0.002],
+      [eLat, eLng]
     ],
     description: `Scenic healthy corridor routed via green verges connecting ${startLoc.name} to ${endLoc.name}.`,
     highlights: ['High shade canopy', 'Away from heavy transport', 'Smooth walking surface'],
     warnings: []
   };
 
-  // Candidate 2: Direct Urban Street Route
   const route2 = {
     id: `R-SYN-${startId}-${endId}-2`,
     name: `${startLoc.shortName} to ${endLoc.shortName} Direct Avenue`,
@@ -293,13 +630,12 @@ function generateGraphCandidates(startId, endId) {
     trafficPollutionRisk: 74,
     roadConditionScore: 75,
     terrainType: 'Urban Concrete Sidewalk',
-    elevationGainMeters: 2,
     waypoints: [
-      [startLoc.x, startLoc.y],
-      [Math.round(startLoc.x + dx * 0.5), Math.round(startLoc.y + dy * 0.5)],
-      [endLoc.x, endLoc.y]
+      [sLat, sLng],
+      [sLat + (eLat - sLat) * 0.5, sLng + (eLng - sLng) * 0.5],
+      [eLat, eLng]
     ],
-    description: `Direct street route through main town avenue. Shorter distance but elevated vehicular noise and emissions.`,
+    description: `Direct street route through main avenue. Shorter distance but elevated vehicular emissions.`,
     highlights: ['Shortest direct walking distance'],
     warnings: ['High traffic exhaust fumes', 'Crowded sidewalks']
   };
@@ -309,6 +645,9 @@ function generateGraphCandidates(startId, endId) {
 
 module.exports = {
   evaluateAndRecommendRoutes,
+  evaluateAndRecommendRealRoutes,
   calculateHazardPenalty,
+  calculateGeoHazardPenalty,
+  deriveWeights,
   PACE_SPEEDS
 };

@@ -3,10 +3,6 @@ import {
   User, 
   Lock, 
   Mail, 
-  Footprints, 
-  Sparkles, 
-  ShieldCheck, 
-  CheckCircle2,
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -48,19 +44,6 @@ export default function AuthPage({ onSuccess }) {
     }
   };
 
-  const handleQuickLogin = async (demoEmail, demoPass) => {
-    setError('');
-    setLoading(true);
-    try {
-      await login(demoEmail, demoPass);
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      setError(err.message || 'Demo login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="container" style={{
       padding: '40px 24px 80px 24px',
@@ -93,50 +76,6 @@ export default function AuthPage({ onSuccess }) {
           <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', margin: 0 }}>
             Personalized Healthy Walking Routes in Bengaluru
           </p>
-        </div>
-
-        {/* Demo 1-Click Login Quick Fill Box (Crucial for evaluation/viva) */}
-        <div style={{
-          background: 'var(--primary-50)',
-          border: '1px solid var(--primary-100)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 14px',
-          marginBottom: '20px'
-        }}>
-          <div style={{
-            fontSize: '0.75rem',
-            fontWeight: '700',
-            color: 'var(--primary-900)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Sparkles size={14} color="var(--primary-600)" />
-            Quick 1-Click Evaluator Login:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('walker@ecowalk.local', 'walk123')}
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.78rem', padding: '6px 10px', justifyContent: 'center' }}
-            >
-              <Footprints size={14} color="var(--primary-600)" />
-              Demo Walker
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@ecowalk.local', 'admin123')}
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.78rem', padding: '6px 10px', justifyContent: 'center' }}
-            >
-              <ShieldCheck size={14} color="var(--accent-sky)" />
-              Demo Admin
-            </button>
-          </div>
         </div>
 
         {/* Tab Switcher */}
@@ -224,7 +163,7 @@ export default function AuthPage({ onSuccess }) {
               <input
                 type="email"
                 required
-                placeholder="walker@ecowalk.local"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input"

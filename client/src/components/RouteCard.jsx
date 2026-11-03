@@ -12,7 +12,8 @@ import {
   Award,
   Sparkles,
   MessageSquarePlus,
-  Send
+  Send,
+  Info
 } from 'lucide-react';
 
 export default function RouteCard({
@@ -270,6 +271,25 @@ export default function RouteCard({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Environmental Data Source Transparency Notice */}
+        {route.environmentalDataSource && (
+          <div style={{
+            fontSize: '0.72rem',
+            color: 'var(--slate-500)',
+            background: 'var(--slate-50)',
+            border: '1px solid var(--slate-200)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '6px 10px',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <Info size={13} style={{ flexShrink: 0, color: 'var(--slate-400)' }} />
+            <span><strong>Environmental Data:</strong> {route.environmentalDataSource}</span>
           </div>
         )}
 

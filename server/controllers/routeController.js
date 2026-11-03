@@ -1,5 +1,6 @@
 const storage = require('../models/storage');
 const recommendationEngine = require('../services/recommendationEngine');
+const routingService = require('../services/routingService');
 
 /**
  * Get all available district landmarks/nodes
@@ -10,6 +11,47 @@ exports.getLocations = (req, res) => {
     return res.json({ success: true, count: locations.length, locations });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to retrieve locations.' });
+  }
+};
+
+/**
+ * Destination Search & Geocoding (Server-side, protects API keys, avoids unrestricted Nominatim)
+ */
+exports.searchDestinations = async (req, res) => {
+  try {
+    const query = req.query.query || req.query.q || '';
+    const lat = parseFloat(req.query.lat) || 12.9716;
+    const lng = parseFloat(req.query.lon || req.query.lng) || 77.5946;
+
+    if (!query || query.trim().length < 2) {
+      return res.json({ success: true, count: 0, results: [] });
+    }
+
+    const results = await routingService.searchDestinations(query, lat, lng);
+    return res.json({ success: true, count: results.length, results });
+  } catch (error) {
+    console.error('Destination Search Error:', error);
+    return res.status(500).json({ error: 'Failed to search destinations.' });
+  }
+};
+
+/**
+ * Reverse Geocode coordinates into street or area name
+ */
+exports.reverseGeocode = async (req, res) => {
+  try {
+    const lat = parseFloat(req.query.lat);
+    const lng = parseFloat(req.query.lng || req.query.lon);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ error: 'Valid numeric latitude and longitude query parameters are required.' });
+    }
+
+    const result = await routingService.reverseGeocode(lat, lng);
+    return res.json({ success: true, result });
+  } catch (error) {
+    console.error('Reverse Geocode Error:', error);
+    return res.status(500).json({ error: 'Failed to reverse geocode coordinates.' });
   }
 };
 
@@ -61,19 +103,21 @@ exports.getRouteById = (req, res) => {
 };
 
 /**
- * Recommend healthy walking routes based on start, end, and user preferences
+ * Recommend healthy walking routes based on real GPS coordinates or landmarks and user preferences
  */
-exports.recommendRoutes = (req, res) => {
+exports.recommendRoutes = async (req, res) => {
   try {
-    const { startNodeId, endNodeId, preferences, walkingSpeed } = req.body;
-
-    if (!startNodeId || !endNodeId) {
-      return res.status(400).json({ error: 'Start and destination landmarks are required.' });
-    }
-
-    if (startNodeId === endNodeId) {
-      return res.status(400).json({ error: 'Start and destination landmarks cannot be the same.' });
-    }
+    const { 
+      startCoords, 
+      destinationCoords, 
+      startLabel, 
+      destinationLabel,
+      startNodeId, 
+      endNodeId, 
+      preferences, 
+      walkingSpeed,
+      logWalk 
+    } = req.body;
 
     // Determine user preferences (from payload or user profile if logged in)
     let effectivePrefs = preferences || {};
@@ -87,19 +131,53 @@ exports.recommendRoutes = (req, res) => {
       }
     }
 
-    const recommendation = recommendationEngine.evaluateAndRecommendRoutes(
-      startNodeId,
-      endNodeId,
-      effectivePrefs,
-      effectiveSpeed
-    );
+    let recommendation = null;
 
-    if (!recommendation.success) {
-      return res.status(404).json({ error: recommendation.message });
+    // 1. If real GPS coordinates are supplied
+    if (
+      startCoords && typeof startCoords.lat === 'number' && typeof startCoords.lng === 'number' &&
+      destinationCoords && typeof destinationCoords.lat === 'number' && typeof destinationCoords.lng === 'number'
+    ) {
+      // Check if start and destination are identical
+      const dist = routingService.haversineDistance(
+        startCoords.lat, startCoords.lng,
+        destinationCoords.lat, destinationCoords.lng
+      );
+      if (dist < 0.02) { // less than 20 meters
+        return res.status(400).json({ error: 'Start and destination locations are too close to generate a walking route.' });
+      }
+
+      recommendation = await recommendationEngine.evaluateAndRecommendRealRoutes({
+        startCoords,
+        destinationCoords,
+        startLabel: startLabel || 'Current GPS Location',
+        destinationLabel: destinationLabel || 'Selected Destination',
+        userPreferences: effectivePrefs,
+        walkingSpeed: effectiveSpeed
+      });
+    } 
+    // 2. Fallback to startNodeId / endNodeId (backward compatibility)
+    else if (startNodeId && endNodeId) {
+      if (startNodeId === endNodeId) {
+        return res.status(400).json({ error: 'Start and destination landmarks cannot be the same.' });
+      }
+
+      recommendation = await recommendationEngine.evaluateAndRecommendRoutes(
+        startNodeId,
+        endNodeId,
+        effectivePrefs,
+        effectiveSpeed
+      );
+    } else {
+      return res.status(400).json({ error: 'Valid starting coordinates and destination are required to calculate routes.' });
     }
 
-    // If user is authenticated, log a walk interaction in their stats
-    if (req.user && req.body.logWalk) {
+    if (!recommendation || !recommendation.success) {
+      return res.status(404).json({ error: recommendation?.message || 'Could not find walking paths.' });
+    }
+
+    // If user is authenticated, log a walk interaction in their profile stats
+    if (req.user && logWalk && recommendation.recommendedRoute) {
       storage.updateUserStats(req.user.id, {
         distanceKm: recommendation.recommendedRoute.distanceKm,
         calories: recommendation.recommendedRoute.caloriesBurned,
@@ -111,6 +189,6 @@ exports.recommendRoutes = (req, res) => {
     return res.json(recommendation);
   } catch (error) {
     console.error('Route Recommendation Error:', error);
-    return res.status(500).json({ error: 'Failed to compute route recommendations.' });
+    return res.status(500).json({ error: error.message || 'Failed to compute route recommendations.' });
   }
 };

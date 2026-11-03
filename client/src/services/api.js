@@ -74,6 +74,18 @@ export const api = {
       const res = await fetch(`${API_BASE}/routes/locations`);
       return handleResponse(res);
     },
+    searchDestinations: async (query, lat, lon) => {
+      const params = new URLSearchParams({ query });
+      if (lat) params.append('lat', lat);
+      if (lon) params.append('lon', lon);
+      const res = await fetch(`${API_BASE}/routes/search-destination?${params.toString()}`);
+      return handleResponse(res);
+    },
+    reverseGeocode: async (lat, lng) => {
+      const params = new URLSearchParams({ lat, lng });
+      const res = await fetch(`${API_BASE}/routes/reverse-geocode?${params.toString()}`);
+      return handleResponse(res);
+    },
     getAll: async () => {
       const res = await fetch(`${API_BASE}/routes`);
       return handleResponse(res);
@@ -102,6 +114,19 @@ export const api = {
       
       const query = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`${API_BASE}/reports${query}`);
+      return handleResponse(res);
+    },
+    getNearby: async ({ lat, lng, radiusMeters = 80 }) => {
+      const params = new URLSearchParams({ lat, lng, radiusMeters });
+      const res = await fetch(`${API_BASE}/reports/nearby?${params.toString()}`);
+      return handleResponse(res);
+    },
+    confirm: async (id, userPayload = {}) => {
+      const res = await fetch(`${API_BASE}/reports/${id}/confirm`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(userPayload)
+      });
       return handleResponse(res);
     },
     create: async (reportData) => {

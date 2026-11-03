@@ -152,8 +152,88 @@ const storage = {
   getActiveReportsForRoute: (routeId) => readData('reports').filter(
     rep => rep.routeId === routeId && (rep.status === 'pending' || rep.status === 'verified')
   ),
+  getNearbyReports: (lat, lng, radiusMeters = 80) => {
+    const reports = readData('reports');
+    const active = reports.filter(r => r.status === 'pending' || r.status === 'verified');
+    const nearby = [];
+
+    const toRad = (deg) => deg * Math.PI / 180;
+    const R = 6371000; // Earth radius in meters
+
+    for (const r of active) {
+      let rLat, rLng;
+      if (Array.isArray(r.coordinates) && r.coordinates.length >= 2) {
+        rLat = r.coordinates[0];
+        rLng = r.coordinates[1];
+      } else if (r.lat && r.lng) {
+        rLat = r.lat;
+        rLng = r.lng;
+      }
+      if (typeof rLat !== 'number' || typeof rLng !== 'number') continue;
+      // Skip if coordinates are legacy SVG coordinates (outside valid lat/lng range)
+      if (rLat < -90 || rLat > 90 || rLng < -180 || rLng > 180) continue;
+
+      const dLat = toRad(rLat - lat);
+      const dLon = toRad(rLng - lng);
+      const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat)) * Math.cos(toRad(rLat)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distanceMeters = Math.round(R * c);
+
+      if (distanceMeters <= radiusMeters) {
+        nearby.push({
+          ...r,
+          distanceMeters
+        });
+      }
+    }
+
+    nearby.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    return nearby;
+  },
+  confirmReport: (id, userIdentifier = 'Anonymous Walker') => {
+    const reports = readData('reports');
+    const index = reports.findIndex(r => r.id === id);
+    if (index === -1) return null;
+
+    const rep = reports[index];
+    if (!rep.confirmations) rep.confirmations = 1;
+    if (!Array.isArray(rep.confirmedBy)) {
+      rep.confirmedBy = rep.userEmail ? [rep.userEmail] : ['initial_walker'];
+    }
+
+    const cleanUser = userIdentifier.trim().toLowerCase();
+    const alreadyConfirmed = rep.confirmedBy.some(u => u.trim().toLowerCase() === cleanUser);
+
+    if (alreadyConfirmed) {
+      return { alreadyConfirmed: true, report: rep };
+    }
+
+    rep.confirmedBy.push(userIdentifier.trim());
+    rep.confirmations += 1;
+    rep.lastConfirmedAt = new Date().toISOString();
+
+    // Auto-verify if 3 or more distinct walkers have confirmed this hazard
+    if (rep.confirmations >= 3 && rep.status === 'pending') {
+      rep.status = 'verified';
+      rep.verifiedAt = new Date().toISOString();
+      rep.adminNotes = rep.adminNotes 
+        ? `${rep.adminNotes}; Auto-verified via ${rep.confirmations} community confirmations.`
+        : `Auto-verified via ${rep.confirmations} community walker confirmations.`;
+    }
+
+    reports[index] = rep;
+    writeData('reports', reports);
+    return { success: true, alreadyConfirmed: false, report: rep };
+  },
   createReport: (reportData) => {
     const reports = readData('reports');
+    if (!reportData.confirmations) reportData.confirmations = 1;
+    if (!reportData.confirmedBy) {
+      reportData.confirmedBy = [reportData.userEmail || reportData.reportedBy || 'community_walker'];
+    }
     reports.unshift(reportData); // newest first
     writeData('reports', reports);
     return reportData;

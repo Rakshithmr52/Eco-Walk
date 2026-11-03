@@ -100,18 +100,6 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
     }
   };
 
-  const handleQuickLogin = async (demoEmail, demoPass) => {
-    setAuthError('');
-    setAuthLoading(true);
-    try {
-      await login(demoEmail, demoPass);
-    } catch (err) {
-      setAuthError(err.message || 'Demo login failed.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const userStats = user?.stats || {
     totalDistanceKm: 18.4,
     totalWalks: 12,
@@ -460,81 +448,13 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
                 fontSize: '0.88rem',
                 fontWeight: '700',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                marginBottom: '16px'
+                transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             >
               {authMode === 'login' ? 'Create New Account' : 'Sign in to Existing Account'}
             </button>
-
-            {/* 1-Click Evaluator Demo Logins (Convenient for viva / examiner grading) */}
-            <div style={{
-              padding: '10px 12px',
-              backgroundColor: '#ECFDF5',
-              borderRadius: '10px',
-              border: '1px solid #A7F3D0'
-            }}>
-              <div style={{
-                fontSize: '0.72rem',
-                fontWeight: '700',
-                color: '#065F46',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                marginBottom: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}>
-                <Sparkles size={12} color="#059669" />
-                Quick 1-Click Demo Login:
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('sarah@example.com', 'eco123')}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    background: '#FFFFFF',
-                    fontSize: '0.76rem',
-                    fontWeight: '700',
-                    color: '#065F46',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Footprints size={13} color="#059669" />
-                  Walker Demo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('admin@ecowalk.local', 'admin123')}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    background: '#FFFFFF',
-                    fontSize: '0.76rem',
-                    fontWeight: '700',
-                    color: '#0369A1',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <ShieldCheck size={13} color="#0284C7" />
-                  Admin Demo
-                </button>
-              </div>
-            </div>
           </div>
         ) : (
           /* User Profile Stats Bar (Shown when authenticated) */

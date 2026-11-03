@@ -1,8 +1,11 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const app = require('../server');
 
-const BASE_URL = 'http://localhost:5000';
+let TEST_PORT = 5057;
+let BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
+let serverInstance = null;
 
 async function req(path, method = 'GET', body = null, token = null) {
   const headers = { 'Content-Type': 'application/json' };
@@ -258,12 +261,18 @@ async function verifyAll() {
   console.log(`🎯 Summary: ${passed} Checked Items Passed, ${failed} Failed`);
   console.log('===============================================================\n');
 
+  if (serverInstance) serverInstance.close();
   if (failed > 0) {
     process.exit(1);
   }
 }
 
-verifyAll().catch(err => {
-  console.error('Fatal Verification Error:', err);
-  process.exit(1);
+serverInstance = app.listen(TEST_PORT, async () => {
+  try {
+    await verifyAll();
+  } catch (err) {
+    console.error('Fatal Verification Error:', err);
+    if (serverInstance) serverInstance.close();
+    process.exit(1);
+  }
 });

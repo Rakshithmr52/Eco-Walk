@@ -196,7 +196,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
               style={{ borderRadius: 'var(--radius-full)', padding: '8px 20px' }}
             >
               <User size={16} />
-              Sign In / Demo
+              Sign In
             </button>
           )}
         </div>

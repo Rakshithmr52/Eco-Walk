@@ -147,9 +147,9 @@ const initialLocations = [
   }
 ];
 
-// Rich predefined routes between landmarks
+
 const initialRoutes = [
-  // L1 (Botanical Gardens) -> L4 (Tech Campus)
+
   {
     id: 'R-L1-L4-1',
     name: 'Emerald Arboretum Walkway',
@@ -219,7 +219,7 @@ const initialRoutes = [
     ]
   },
 
-  // L1 (Botanical Gardens) -> L2 (Clock Tower)
+
   {
     id: 'R-L1-L2-1',
     name: 'Botanical Floral Boulevard',
@@ -287,7 +287,7 @@ const initialRoutes = [
     ]
   },
 
-  // L4 (Tech Campus) -> L7 (Metro Central)
+
   {
     id: 'R-L4-L7-1',
     name: 'South Green Belt Greenway',
@@ -352,7 +352,7 @@ const initialRoutes = [
     ]
   },
 
-  // L2 (Clock Tower) -> L3 (Green Lake)
+
   {
     id: 'R-L2-L3-1',
     name: 'Lakeside Willow Walk',
@@ -418,7 +418,6 @@ const initialRoutes = [
     ]
   },
 
-  // L5 (Central Library) -> L8 (Sports Complex)
   {
     id: 'R-L5-L8-1',
     name: 'Civic Arboretum Trail',
@@ -481,7 +480,7 @@ const initialRoutes = [
     ]
   },
 
-  // L6 (Eco Market) -> L9 (River Trail)
+
   {
     id: 'R-L6-L9-1',
     name: 'Riparian Garden Pathway',
@@ -784,44 +783,70 @@ const sampleUsers = [
 const sampleReports = [
   {
     id: 'REP-101',
-    routeId: 'R-L4-L7-2',
-    routeName: 'Industrial Transit By-pass',
-    locationName: 'Near logistics loading gate #3',
-    coordinates: [270, 480],
+    routeId: 'ROUTE-REAL-L4',
+    routeName: 'IISc Campus Green Corridor',
+    locationName: 'IISc Campus Main Gate Walkway',
+    coordinates: [13.0219, 77.5671],
     issueType: 'pothole',
     severity: 'high',
-    status: 'verified', // pending, verified, resolved
-    description: 'Deep circular pothole on pedestrian curb filled with loose gravel and sharp stones. High tripping hazard during morning rush.',
-    imageUrl: '', // base64 or placeholder preview
-    reportedBy: 'Aarav Sharma',
-    userEmail: 'walker@ecowalk.local',
-    createdAt: '2026-09-18T14:20:00.000Z',
-    verifiedAt: '2026-09-19T10:15:00.000Z',
-    adminNotes: 'Civic repair team alerted. Barrier cone placed.'
-  },
-  {
-    id: 'REP-102',
-    routeId: 'R-L7-L8-2',
-    routeName: 'South Expressway Service Road',
-    locationName: 'Drainage grating corner near bus bay',
-    coordinates: [460, 615],
-    issueType: 'drainage',
-    severity: 'moderate',
-    status: 'pending',
-    description: 'Blocked stormwater drain causing foul water puddle spanning 3 meters across sidewalk. Pedestrians forced into vehicle lane.',
+    status: 'verified',
+    description: 'Deep broken pavement and loose gravel near pedestrian curb. Tripping hazard during morning walks.',
     imageUrl: '',
     reportedBy: 'Aarav Sharma',
     userEmail: 'walker@ecowalk.local',
-    createdAt: '2026-09-20T08:45:00.000Z',
+    confirmations: 4,
+    confirmedBy: ['walker@ecowalk.local', 'kavya@ecowalk.local', 'rahul@ecowalk.local', 'priya@ecowalk.local'],
+    lastConfirmedAt: '2026-11-03T14:10:00.000Z',
+    createdAt: '2026-10-20T08:30:00.000Z',
+    verifiedAt: '2026-10-21T09:15:00.000Z',
+    adminNotes: 'Auto-verified via 4 community walker confirmations. Warning cones placed.'
+  },
+  {
+    id: 'REP-102',
+    routeId: 'ROUTE-REAL-L2',
+    routeName: 'Vidhana Soudha Heritage Promenade',
+    locationName: 'Vidhana Soudha West Pedestrian Crossing',
+    coordinates: [12.9796, 77.5908],
+    issueType: 'drainage',
+    severity: 'moderate',
+    status: 'pending',
+    description: 'Blocked stormwater drain causing foul water pooling across sidewalk after monsoon shower.',
+    imageUrl: '',
+    reportedBy: 'Rahul',
+    userEmail: 'walker@ecowalk.local',
+    confirmations: 2,
+    confirmedBy: ['walker@ecowalk.local', 'anita@ecowalk.local'],
+    lastConfirmedAt: '2026-11-02T16:45:00.000Z',
+    createdAt: '2026-11-01T11:20:00.000Z',
     verifiedAt: null,
     adminNotes: ''
   },
   {
+    id: 'REP-104',
+    routeId: 'ROUTE-REAL-L3',
+    routeName: 'Ulsoor Lake Waterfront Promenade',
+    locationName: 'Ulsoor Lake Boardwalk Bend',
+    coordinates: [12.9815, 77.6201],
+    issueType: 'obstruction',
+    severity: 'high',
+    status: 'verified',
+    description: 'Fallen tree branch and construction barricade blocking dedicated pedestrian track.',
+    imageUrl: '',
+    reportedBy: 'Kavita Rao',
+    userEmail: 'kavita@ecowalk.local',
+    confirmations: 3,
+    confirmedBy: ['kavita@ecowalk.local', 'suresh@ecowalk.local', 'deepak@ecowalk.local'],
+    lastConfirmedAt: '2026-11-02T18:00:00.000Z',
+    createdAt: '2026-10-28T14:15:00.000Z',
+    verifiedAt: '2026-10-29T10:00:00.000Z',
+    adminNotes: 'Civic maintenance team alerted; clearance scheduled.'
+  },
+  {
     id: 'REP-103',
-    routeId: 'R-L1-L2-2',
-    routeName: 'Heritage Alleyway Cut-Through',
-    locationName: 'Heritage gate passage lane',
-    coordinates: [350, 200],
+    routeId: 'ROUTE-REAL-L1',
+    routeName: 'Lalbagh Botanical Walkway',
+    locationName: 'Lalbagh North Gate Path',
+    coordinates: [12.9507, 77.5848],
     issueType: 'unsafe_lighting',
     severity: 'low',
     status: 'resolved',
@@ -829,26 +854,12 @@ const sampleReports = [
     imageUrl: '',
     reportedBy: 'Rakshith',
     userEmail: 'admin@ecowalk.local',
+    confirmations: 1,
+    confirmedBy: ['admin@ecowalk.local'],
+    lastConfirmedAt: '2026-09-14T19:30:00.000Z',
     createdAt: '2026-09-14T19:30:00.000Z',
     resolvedAt: '2026-09-16T11:00:00.000Z',
-    adminNotes: 'Municipal electrical team replaced fixture with new 45W energy efficient LED unit.'
-  },
-  {
-    id: 'REP-104',
-    routeId: 'R-L6-L9-2',
-    routeName: 'River Freight Access Alley',
-    locationName: 'Old dock turning curve',
-    coordinates: [790, 490],
-    issueType: 'pothole',
-    severity: 'critical',
-    status: 'verified',
-    description: 'Severe erosion and sunken asphalt slab leaving 15cm edge drop. Unsafe for night walking.',
-    imageUrl: '',
-    reportedBy: 'Kavita Rao',
-    userEmail: 'kavita@ecowalk.local',
-    createdAt: '2026-09-19T17:10:00.000Z',
-    verifiedAt: '2026-09-20T09:30:00.000Z',
-    adminNotes: 'Temporary warning tape applied; re-paving scheduled.'
+    adminNotes: 'Municipal electrical team replaced fixture with energy efficient LED unit.'
   }
 ];
 

@@ -142,38 +142,40 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           );
         })}
 
-        {/* Dedicated Sign Out Navigation Item */}
-        <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            fontSize: '0.92rem',
-            fontWeight: '600',
-            backgroundColor: 'transparent',
-            color: '#FCA5A5',
-            marginTop: '8px',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-            e.currentTarget.style.color = '#FFFFFF';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#FCA5A5';
-          }}
-        >
-          <LogOut size={20} color="#F87171" style={{ flexShrink: 0 }} />
-          <span>Sign Out</span>
-        </button>
+        {/* Dedicated Sign Out Navigation Item - shown only when authenticated */}
+        {user && (
+          <button
+            onClick={logout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              width: '100%',
+              fontSize: '0.92rem',
+              fontWeight: '600',
+              backgroundColor: 'transparent',
+              color: '#FCA5A5',
+              marginTop: '8px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#FCA5A5';
+            }}
+          >
+            <LogOut size={20} color="#F87171" style={{ flexShrink: 0 }} />
+            <span>Sign Out</span>
+          </button>
+        )}
       </nav>
 
       {/* User Session & Footer Card */}
