@@ -16,19 +16,21 @@ exports.getLocations = (req, res) => {
 
 /**
  * Destination Search & Geocoding (Server-side, protects API keys, avoids unrestricted Nominatim)
+ * Constrains destination results within a healthy walking radius (default: 5.0 km)
  */
 exports.searchDestinations = async (req, res) => {
   try {
     const query = req.query.query || req.query.q || '';
     const lat = parseFloat(req.query.lat) || 12.9716;
     const lng = parseFloat(req.query.lon || req.query.lng) || 77.5946;
+    const radius = parseFloat(req.query.radius) || 5.0;
 
     if (!query || query.trim().length < 2) {
       return res.json({ success: true, count: 0, results: [] });
     }
 
-    const results = await routingService.searchDestinations(query, lat, lng);
-    return res.json({ success: true, count: results.length, results });
+    const results = await routingService.searchDestinations(query, lat, lng, radius);
+    return res.json({ success: true, count: results.length, radiusKm: radius, results });
   } catch (error) {
     console.error('Destination Search Error:', error);
     return res.status(500).json({ error: 'Failed to search destinations.' });
@@ -145,6 +147,13 @@ exports.recommendRoutes = async (req, res) => {
       );
       if (dist < 0.02) { // less than 20 meters
         return res.status(400).json({ error: 'Start and destination locations are too close to generate a walking route.' });
+      }
+
+      // Enforce 5 km walking radius limit
+      if (dist > 5.0) {
+        return res.status(400).json({
+          error: `Destination is ${dist.toFixed(1)} km away. EcoWalk is designed for healthy pedestrian walks within a 5 km walking radius. Please select a closer destination.`
+        });
       }
 
       recommendation = await recommendationEngine.evaluateAndRecommendRealRoutes({

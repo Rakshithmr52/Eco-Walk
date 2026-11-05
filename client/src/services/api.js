@@ -74,10 +74,11 @@ export const api = {
       const res = await fetch(`${API_BASE}/routes/locations`);
       return handleResponse(res);
     },
-    searchDestinations: async (query, lat, lon) => {
+    searchDestinations: async (query, lat, lon, radius = 5.0) => {
       const params = new URLSearchParams({ query });
       if (lat) params.append('lat', lat);
       if (lon) params.append('lon', lon);
+      if (radius) params.append('radius', radius);
       const res = await fetch(`${API_BASE}/routes/search-destination?${params.toString()}`);
       return handleResponse(res);
     },

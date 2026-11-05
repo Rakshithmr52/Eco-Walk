@@ -30,6 +30,23 @@ import RouteComparisonTable from '../components/RouteComparisonTable';
 import FeedbackModal from '../components/FeedbackModal';
 import ReportHazardModal from '../components/ReportHazardModal';
 
+const MAX_WALKING_RADIUS_KM = 5.0;
+
+/**
+ * Calculate distance between two coordinates using Haversine formula (km)
+ */
+function haversineDistKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   const { user } = useAuth();
   const [locations, setLocations] = useState([]);
@@ -178,7 +195,25 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   };
 
   /**
-   * Debounced Destination Autocomplete Search
+   * Validate whether destination coordinates are strictly within 5 km of starting location
+   */
+  const validateDestinationRadius = (startPoint, destCoords) => {
+    if (!startPoint || !destCoords || typeof destCoords.lat !== 'number' || typeof destCoords.lng !== 'number') {
+      return { valid: true };
+    }
+    const dist = haversineDistKm(startPoint.lat, startPoint.lng, destCoords.lat, destCoords.lng);
+    if (dist > MAX_WALKING_RADIUS_KM) {
+      return {
+        valid: false,
+        distKm: dist,
+        message: `Destination is ${dist.toFixed(1)} km away. EcoWalk is designed for healthy pedestrian walks within a 5 km walking radius. Please select a closer destination.`
+      };
+    }
+    return { valid: true, distKm: dist };
+  };
+
+  /**
+   * Debounced Destination Autocomplete Search (Constrained to 5 km walking radius)
    */
   const handleSearchChange = (e) => {
     const val = e.target.value;
@@ -197,10 +232,18 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
     searchDebounceRef.current = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const lat = gpsCoords?.lat || 12.9716;
-        const lng = gpsCoords?.lng || 77.5946;
-        const res = await api.routes.searchDestinations(val.trim(), lat, lng);
-        setSearchResults(res.results || []);
+        const start = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
+        const lat = start?.lat || 12.9716;
+        const lng = start?.lng || 77.5946;
+        const res = await api.routes.searchDestinations(val.trim(), lat, lng, MAX_WALKING_RADIUS_KM);
+        
+        // Safety filter ensuring all results are <= 5 km
+        const filtered = (res.results || []).filter(r => {
+          const d = haversineDistKm(lat, lng, r.lat, r.lng);
+          return d <= MAX_WALKING_RADIUS_KM;
+        });
+
+        setSearchResults(filtered);
         setShowSearchDropdown(true);
       } catch (err) {
         console.error('Destination search error:', err);
@@ -211,16 +254,24 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   };
 
   /**
-   * Select destination from search dropdown or landmarks
+   * Select destination from search dropdown or landmarks (validates 5 km radius)
    */
   const handleSelectDestination = (dest) => {
+    const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
+    if (startPoint) {
+      const check = validateDestinationRadius(startPoint, dest);
+      if (!check.valid) {
+        setError(check.message);
+        return;
+      }
+    }
+
     setSelectedDestination(dest);
     setSearchQuery(dest.name);
     setShowSearchDropdown(false);
     setError('');
 
     // Trigger calculation with current start point
-    const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
     if (startPoint) {
       triggerRouteCalculation(startPoint, dest);
     }
@@ -305,9 +356,18 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   };
 
   /**
-   * Clicking directly on the Leaflet map sets clicked point as destination
+   * Clicking directly on the Leaflet map sets clicked point as destination (within 5 km radius)
    */
   const handleMapClick = (clickCoords) => {
+    const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
+    if (startPoint) {
+      const check = validateDestinationRadius(startPoint, clickCoords);
+      if (!check.valid) {
+        setError(`Clicked location is ${check.distKm.toFixed(1)} km away. Please select a destination inside the 5 km walking radius circle.`);
+        return;
+      }
+    }
+
     const clickedDest = {
       lat: clickCoords.lat,
       lng: clickCoords.lng,
@@ -595,16 +655,21 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
 
           {/* Destination Search & Point B */}
           <div className="form-group" style={{ position: 'relative' }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0284C7' }} />
-              Destination Search (Point B)
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 0 }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0284C7' }} />
+                Destination Search (Point B)
+              </label>
+              <span className="badge badge-sky" style={{ fontSize: '0.68rem', padding: '2px 8px', fontWeight: '700' }}>
+                Max 5 km Radius
+              </span>
+            </div>
 
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
                 className="form-input"
-                placeholder="Search street, landmark, or park in city..."
+                placeholder="Search destination within 5 km walking radius..."
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => {
@@ -649,7 +714,7 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
             </div>
 
             {/* Destination Autocomplete Dropdown */}
-            {showSearchDropdown && searchResults.length > 0 && (
+            {showSearchDropdown && (
               <div style={{
                 position: 'absolute',
                 top: '100%',
@@ -664,34 +729,47 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
                 maxHeight: '260px',
                 overflowY: 'auto'
               }}>
-                {searchResults.map((result) => (
-                  <div
-                    key={result.id}
-                    onClick={() => handleSelectDestination(result)}
-                    style={{
-                      padding: '10px 14px',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--slate-100)',
-                      transition: 'background 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--slate-50)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--slate-900)' }}>
-                        {result.name}
-                      </span>
-                      <span className="badge badge-slate" style={{ fontSize: '0.68rem', textTransform: 'capitalize' }}>
-                        {result.type}
-                      </span>
-                    </div>
-                    {result.label && (
-                      <div style={{ fontSize: '0.74rem', color: 'var(--slate-500)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {result.label}
+                {searchResults.length > 0 ? (
+                  searchResults.map((result) => (
+                    <div
+                      key={result.id}
+                      onClick={() => handleSelectDestination(result)}
+                      style={{
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--slate-100)',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--slate-50)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--slate-900)' }}>
+                          {result.name}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {result.distanceKm !== undefined && (
+                            <span className="badge badge-emerald" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                              {result.distanceKm} km away
+                            </span>
+                          )}
+                          <span className="badge badge-slate" style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                            {result.type}
+                          </span>
+                        </div>
                       </div>
-                    )}
+                      {result.label && (
+                        <div style={{ fontSize: '0.74rem', color: 'var(--slate-500)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {result.label}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : !searchLoading && searchQuery.trim().length >= 2 ? (
+                  <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: '0.78rem', color: '#64748B' }}>
+                    No destinations found within the 5 km walking radius. Try a closer landmark.
                   </div>
-                ))}
+                ) : null}
               </div>
             )}
 
@@ -750,11 +828,11 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
                 gap: '8px'
               }}>
                 <MapPin size={15} color="#0284C7" style={{ flexShrink: 0 }} />
-                <span>Search above, pick from the landmark list below, or click anywhere directly on the map.</span>
+                <span>Search above (within 5 km), choose from nearby landmarks below, or click inside the 5 km circle on the map.</span>
               </div>
             )}
 
-            {/* Quick Landmark Fallback Select */}
+            {/* Quick Landmark Fallback Select (Strictly filtered to <= 5 km) */}
             <div style={{ marginTop: '8px' }}>
               <select
                 className="form-select"
@@ -778,12 +856,21 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
                   }
                 }}
               >
-                <option value="">-- Or Choose a Destination Landmark --</option>
-                {locations.map(loc => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.shortName} ({loc.type})
-                  </option>
-                ))}
+                <option value="">-- Or Choose Nearby Landmark (≤ 5 km) --</option>
+                {locations
+                  .map(loc => {
+                    const lat = loc.lat || (loc.y ? 12.93 + (loc.y / 700) * 0.1 : 12.9796);
+                    const lng = loc.lng || (loc.x ? 77.56 + (loc.x / 1000) * 0.08 : 77.5908);
+                    const distKm = currentActiveStart ? haversineDistKm(currentActiveStart.lat, currentActiveStart.lng, lat, lng) : null;
+                    return { ...loc, lat, lng, distKm };
+                  })
+                  .filter(loc => loc.distKm === null || loc.distKm <= MAX_WALKING_RADIUS_KM)
+                  .sort((a, b) => (a.distKm || 0) - (b.distKm || 0))
+                  .map(loc => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.shortName} ({loc.type}){loc.distKm !== null ? ` — ${loc.distKm.toFixed(1)} km away` : ''}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -967,12 +1054,12 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
             <MapPin size={22} />
           </div>
           <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
-            {useGpsOrigin && gpsCoords ? 'Current Location Acquired — Please Choose Your Destination' : 'Choose Your Walking Destination'}
+            {useGpsOrigin && gpsCoords ? 'Current Location Acquired — Please Choose Destination (Within 5 km)' : 'Choose Your Walking Destination (Within 5 km)'}
           </h3>
-          <p style={{ fontSize: '0.86rem', color: '#64748B', maxWidth: '540px', margin: '0 auto', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '0.86rem', color: '#64748B', maxWidth: '560px', margin: '0 auto', lineHeight: '1.5' }}>
             {useGpsOrigin && gpsCoords
-              ? 'Your device GPS location is set as Point A. Search for a destination in the search box, pick from the landmark list, or click anywhere directly on the map to generate healthy walking routes.'
-              : 'Search for any destination, pick from the landmark list, or click anywhere on the map to set your destination.'}
+              ? 'Your device GPS location is set as Point A. Search for a destination within 5 km, pick from nearby landmarks, or click inside the blue 5 km walking radius circle on the map to generate healthy walking routes.'
+              : 'Search for any destination within 5 km, pick from nearby landmarks, or click inside the 5 km blue circle on the map to set your destination.'}
           </p>
         </div>
       )}

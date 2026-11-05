@@ -193,14 +193,15 @@ async function getWalkingRoutes(start, destination) {
 
 /**
  * Search destinations using local landmarks, ORS Geocoding, or Komoot Photon (OSM)
+ * Filters and ranks results strictly within the specified walking radius (default: 5.0 km)
  */
-async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
+async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946, maxRadiusKm = 5.0) {
   if (!query || typeof query !== 'string' || query.trim().length < 2) {
     return [];
   }
 
   const cleanQuery = query.trim().toLowerCase();
-  const cacheKey = `${cleanQuery}_${userLat.toFixed(2)}_${userLng.toFixed(2)}`;
+  const cacheKey = `${cleanQuery}_${userLat.toFixed(2)}_${userLng.toFixed(2)}_${maxRadiusKm}`;
 
   if (geocodeCache.has(cacheKey)) {
     return geocodeCache.get(cacheKey);
@@ -208,7 +209,7 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
 
   const results = [];
 
-  // 1. Search local landmark database
+  // 1. Search local landmark database (filtered by 5 km walking radius)
   const localLocations = storage.getLocations();
   for (const loc of localLocations) {
     if (
@@ -216,15 +217,24 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
       loc.shortName.toLowerCase().includes(cleanQuery) ||
       loc.type.toLowerCase().includes(cleanQuery)
     ) {
-      results.push({
-        id: `local-${loc.id}`,
-        name: loc.shortName,
-        label: `${loc.name} (${loc.type})`,
-        lat: loc.lat || (loc.y ? 12.93 + (loc.y / 700) * 0.1 : 12.9716),
-        lng: loc.lng || (loc.x ? 77.56 + (loc.x / 1000) * 0.08 : 77.5946),
-        type: loc.type,
-        isLandmark: true
-      });
+      const coords = LANDMARK_COORDS[loc.id] || {
+        lat: typeof loc.lat === 'number' ? loc.lat : (loc.y ? 12.93 + (loc.y / 700) * 0.1 : 12.9716),
+        lng: typeof loc.lng === 'number' ? loc.lng : (loc.x ? 77.56 + (loc.x / 1000) * 0.08 : 77.5946)
+      };
+
+      const distKm = haversineDistance(userLat, userLng, coords.lat, coords.lng);
+      if (distKm <= maxRadiusKm) {
+        results.push({
+          id: `local-${loc.id}`,
+          name: loc.shortName,
+          label: `${loc.name} (${loc.type})`,
+          lat: coords.lat,
+          lng: coords.lng,
+          type: loc.type,
+          isLandmark: true,
+          distanceKm: Number(distKm.toFixed(2))
+        });
+      }
     }
   }
 
@@ -232,22 +242,26 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
   const apiKey = config.ORS_API_KEY;
   if (apiKey && apiKey !== 'your_api_key' && apiKey.trim() !== '') {
     try {
-      const orsUrl = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(query)}&focus.point.lat=${userLat}&focus.point.lon=${userLng}&size=5`;
+      const orsUrl = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(query)}&focus.point.lat=${userLat}&focus.point.lon=${userLng}&size=8`;
       const orsRes = await fetch(orsUrl, { headers: { 'Accept': 'application/json' } });
       if (orsRes.ok) {
         const data = await orsRes.json();
         if (data && data.features) {
           data.features.forEach((f, idx) => {
             const [lng, lat] = f.geometry.coordinates;
-            results.push({
-              id: `ors-${idx}-${f.properties.id || idx}`,
-              name: f.properties.name || f.properties.label,
-              label: f.properties.label || f.properties.name,
-              lat,
-              lng,
-              type: f.properties.layer || 'place',
-              confidence: f.properties.confidence || 0.8
-            });
+            const distKm = haversineDistance(userLat, userLng, lat, lng);
+            if (distKm <= maxRadiusKm) {
+              results.push({
+                id: `ors-${idx}-${f.properties.id || idx}`,
+                name: f.properties.name || f.properties.label,
+                label: f.properties.label || f.properties.name,
+                lat,
+                lng,
+                type: f.properties.layer || 'place',
+                confidence: f.properties.confidence || 0.8,
+                distanceKm: Number(distKm.toFixed(2))
+              });
+            }
           });
         }
       }
@@ -259,7 +273,7 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
   // 3. Photon OSM Geocoding fallback if we have few results
   if (results.length < 3) {
     try {
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${userLat}&lon=${userLng}&limit=6`;
+      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${userLat}&lon=${userLng}&limit=8`;
       const pRes = await fetch(photonUrl, {
         headers: {
           'User-Agent': 'EcoWalk-MCA-HealthyRouteSystem/1.0 (academic-project)'
@@ -270,22 +284,26 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
         if (data && data.features) {
           data.features.forEach((f, idx) => {
             const [lng, lat] = f.geometry.coordinates;
-            const p = f.properties;
-            const parts = [p.name, p.street, p.district, p.city, p.state, p.country].filter(Boolean);
-            const label = parts.join(', ');
-            
-            // Check if not already added
-            const exists = results.some(r => Math.abs(r.lat - lat) < 0.001 && Math.abs(r.lng - lng) < 0.001);
-            if (!exists && p.name) {
-              results.push({
-                id: `osm-${idx}-${lat.toFixed(4)}`,
-                name: p.name,
-                label: label || p.name,
-                lat,
-                lng,
-                type: p.osm_value || 'address',
-                confidence: 0.85
-              });
+            const distKm = haversineDistance(userLat, userLng, lat, lng);
+            if (distKm <= maxRadiusKm) {
+              const p = f.properties;
+              const parts = [p.name, p.street, p.district, p.city, p.state, p.country].filter(Boolean);
+              const label = parts.join(', ');
+              
+              // Check if not already added
+              const exists = results.some(r => Math.abs(r.lat - lat) < 0.001 && Math.abs(r.lng - lng) < 0.001);
+              if (!exists && p.name) {
+                results.push({
+                  id: `osm-${idx}-${lat.toFixed(4)}`,
+                  name: p.name,
+                  label: label || p.name,
+                  lat,
+                  lng,
+                  type: p.osm_value || 'address',
+                  confidence: 0.85,
+                  distanceKm: Number(distKm.toFixed(2))
+                });
+              }
             }
           });
         }
@@ -294,6 +312,9 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
       console.warn('[Geocode] Photon geocode lookup failed:', e.message);
     }
   }
+
+  // Sort results by proximity (closest destination first within 5 km)
+  results.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
 
   // Deduplicate and cap at 8 results
   const uniqueResults = results.slice(0, 8);

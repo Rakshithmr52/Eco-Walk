@@ -208,6 +208,7 @@ export default function MapVisualizer({
   const [showHazards, setShowHazards] = useState(true);
   const [showLandmarks, setShowLandmarks] = useState(false);
   const [showAccuracyCircle, setShowAccuracyCircle] = useState(true);
+  const [showRadiusCircle, setShowRadiusCircle] = useState(true);
   const [confirmedHazards, setConfirmedHazards] = useState({});
   const [confirmingId, setConfirmingId] = useState(null);
   const mapRef = useRef(null);
@@ -338,6 +339,15 @@ export default function MapVisualizer({
           <span>Civic Landmarks</span>
         </label>
 
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showRadiusCircle}
+            onChange={(e) => setShowRadiusCircle(e.target.checked)}
+          />
+          <span style={{ color: '#0284C7', fontWeight: '700' }}>5 km Walk Radius</span>
+        </label>
+
         {currentLocation && currentLocation.accuracy && (
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <input
@@ -432,6 +442,35 @@ export default function MapVisualizer({
               </div>
             </Popup>
           </Marker>
+        )}
+
+        {/* 5 km Walking Radius Boundary Circle around Active Origin */}
+        {showRadiusCircle && (currentLocation || manualStartLocation) && (
+          <Circle
+            center={[
+              (currentLocation || manualStartLocation).lat,
+              (currentLocation || manualStartLocation).lng
+            ]}
+            radius={5000}
+            pathOptions={{
+              color: '#0284C7',
+              fillColor: '#38BDF8',
+              fillOpacity: 0.05,
+              weight: 2,
+              dashArray: '6, 6'
+            }}
+          >
+            <Popup>
+              <div style={{ padding: '4px' }}>
+                <div style={{ fontWeight: '800', color: '#0284C7', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Navigation size={14} /> 5 km Walking Radius Zone
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginTop: '4px', lineHeight: '1.4' }}>
+                  Pedestrian destination limit. Destinations selected via search, landmark dropdown, or map click must be located within this 5 km zone.
+                </div>
+              </div>
+            </Popup>
+          </Circle>
         )}
 
         {/* Destination Marker */}
