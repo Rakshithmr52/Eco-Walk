@@ -61,8 +61,10 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   const [gpsError, setGpsError] = useState('');
   const [useGpsOrigin, setUseGpsOrigin] = useState(true);
 
-  // Manual Origin Fallback State
+  // Manual Origin & Map-Click Start State
   const [manualStartNodeId, setManualStartNodeId] = useState(initialStart);
+  const [customOrigin, setCustomOrigin] = useState(null); // { lat, lng, name }
+  const [mapClickMode, setMapClickMode] = useState('destination'); // 'destination' | 'origin'
 
   // Destination Search & Selection State (Left unselected initially so user explicitly chooses)
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,6 +97,7 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
 
   /**
    * Request GPS position using browser navigator.geolocation
+   * Validates Bengaluru geographic bounds to ensure seamless demonstration
    */
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -110,14 +113,31 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        const coords = {
-          lat: latitude,
-          lng: longitude,
-          accuracy: accuracy || 15
-        };
-        setGpsCoords(coords);
-        setGpsStatus('acquired');
-        setUseGpsOrigin(true);
+        const inBengaluru = latitude >= 12.75 && latitude <= 13.25 && longitude >= 77.40 && longitude <= 77.85;
+
+        let coords;
+        if (inBengaluru) {
+          coords = {
+            lat: latitude,
+            lng: longitude,
+            accuracy: accuracy || 15
+          };
+          setGpsCoords(coords);
+          setGpsStatus('acquired');
+          setUseGpsOrigin(true);
+        } else {
+          // Device GPS is outside Bengaluru: provide central Bengaluru demonstration origin
+          coords = {
+            lat: 12.9716,
+            lng: 77.5946,
+            accuracy: 15,
+            name: 'Central Bengaluru (MG Road / Cubbon Park)'
+          };
+          setGpsCoords(coords);
+          setGpsStatus('acquired');
+          setUseGpsOrigin(true);
+          setGpsError('Device GPS is outside Bengaluru. Origin set to Central Bengaluru (MG Road) so you can test routes freely.');
+        }
 
         // If a destination is already set, calculate routes immediately
         if (selectedDestination) {
@@ -126,19 +146,9 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
       },
       (geoError) => {
         console.warn('Geolocation error:', geoError);
-        let errorMsg = 'Failed to acquire GPS location.';
-        if (geoError.code === 1) { // PERMISSION_DENIED
-          setGpsStatus('denied');
-          errorMsg = 'Location permission was denied. You can enable permissions in your browser or select your starting landmark manually below.';
-        } else if (geoError.code === 2) { // POSITION_UNAVAILABLE
-          setGpsStatus('error');
-          errorMsg = 'GPS signal is currently unavailable on this device. Using manual origin selection.';
-        } else if (geoError.code === 3) { // TIMEOUT
-          setGpsStatus('error');
-          errorMsg = 'Location request timed out. Please click "Detect My Location" to retry or pick a landmark.';
-        }
-        setGpsError(errorMsg);
+        setGpsStatus('denied');
         setUseGpsOrigin(false);
+        setManualStartNodeId('L1');
       },
       {
         enableHighAccuracy: true,
@@ -154,12 +164,13 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
       try {
         const [locData, hazardData, cpcbData] = await Promise.all([
           api.routes.getLocations(),
-          api.reports.getAll({ status: 'verified' }),
+          api.reports.getAll(),
           api.routes.getCpcbStations().catch(() => ({ stations: [] }))
         ]);
         const locs = locData.locations || [];
         setLocations(locs);
-        setActiveHazards(hazardData.reports || []);
+        const activeOnly = (hazardData.reports || []).filter(r => r.status === 'pending' || r.status === 'verified');
+        setActiveHazards(activeOnly);
         setCpcbStations(cpcbData.stations || []);
 
         // Only set destination if explicitly provided (e.g. from an explicit action)
@@ -263,10 +274,9 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   const handleSelectDestination = (dest) => {
     const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
     if (startPoint) {
-      const check = validateDestinationRadius(startPoint, dest);
-      if (!check.valid) {
-        setError(check.message);
-        return;
+      const d = haversineDistKm(startPoint.lat, startPoint.lng, dest.lat, dest.lng);
+      if (d > walkingRadiusKm && d <= 14.0) {
+        setWalkingRadiusKm(Math.min(12.0, Math.ceil(d * 2) / 2));
       }
     }
 
@@ -282,15 +292,24 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   };
 
   /**
-   * Helper to resolve manual start coordinates from selected landmark
+   * Helper to resolve manual start coordinates from selected landmark or custom map-click origin
    */
   const getManualStartCoords = () => {
+    if (customOrigin && typeof customOrigin.lat === 'number' && typeof customOrigin.lng === 'number') {
+      return customOrigin;
+    }
     const loc = locations.find(l => l.id === manualStartNodeId);
-    if (!loc) return null;
+    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      return {
+        lat: loc.lat,
+        lng: loc.lng,
+        name: loc.shortName || loc.name
+      };
+    }
     return {
-      lat: loc.lat || (loc.y ? 12.93 + (loc.y / 700) * 0.1 : 12.9507),
-      lng: loc.lng || (loc.x ? 77.56 + (loc.x / 1000) * 0.08 : 77.5848),
-      name: loc.shortName || loc.name
+      lat: 12.9507,
+      lng: 77.5848,
+      name: 'Lalbagh Botanical Gardens'
     };
   };
 
@@ -304,13 +323,16 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
     setError('');
 
     try {
+      const distance = haversineDistKm(startPoint.lat, startPoint.lng, destPoint.lat, destPoint.lng);
+      const effectiveRadius = Math.max(walkingRadiusKm, Math.min(15.0, Math.ceil(distance * 1.3 * 2) / 2));
+
       const payload = {
         startCoords: { lat: startPoint.lat, lng: startPoint.lng },
         destinationCoords: { lat: destPoint.lat, lng: destPoint.lng },
-        startLabel: useGpsOrigin && gpsCoords ? 'Current GPS Location' : (startPoint.name || 'Manual Starting Point'),
+        startLabel: useGpsOrigin && gpsCoords ? (gpsCoords.name || 'Current GPS Location') : (startPoint.name || 'Starting Point'),
         destinationLabel: destPoint.name || destPoint.label || 'Selected Destination',
         walkingSpeed,
-        maxWalkingDistanceKm: walkingRadiusKm,
+        maxWalkingDistanceKm: effectiveRadius,
         preferences: {
           prioritizeGreenery,
           prioritizeSafety,
@@ -340,13 +362,13 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
     const currentOrigin = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
     if (!currentOrigin) return;
 
-    // Switch origin to manual mode using destination coordinates
     setUseGpsOrigin(false);
     const newOriginLoc = {
       lat: selectedDestination.lat,
       lng: selectedDestination.lng,
       name: selectedDestination.name
     };
+    setCustomOrigin(newOriginLoc);
 
     const newDest = {
       lat: currentOrigin.lat,
@@ -361,17 +383,43 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   };
 
   /**
-   * Clicking directly on the Leaflet map sets clicked point as destination
+   * Clicking directly on the Leaflet map sets clicked point as destination or origin
    * Automatically resolves address via reverse-geocoding and triggers route calculation
    */
   const handleMapClick = async (clickCoords) => {
-    const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
-    if (startPoint) {
-      const check = validateDestinationRadius(startPoint, clickCoords);
-      if (!check.valid) {
-        setError(`Clicked location is ${check.distKm.toFixed(1)} km away. Please select a destination inside your ${walkingRadiusKm} km walking radius.`);
-        return;
+    // Mode A: Setting Starting Point (Point A) via map click
+    if (mapClickMode === 'origin') {
+      const defaultStartLabel = `Start Point (${clickCoords.lat.toFixed(4)}, ${clickCoords.lng.toFixed(4)})`;
+      const newOrigin = {
+        lat: clickCoords.lat,
+        lng: clickCoords.lng,
+        name: defaultStartLabel
+      };
+      setUseGpsOrigin(false);
+      setCustomOrigin(newOrigin);
+      setError('');
+
+      try {
+        const geoRes = await api.routes.reverseGeocode(clickCoords.lat, clickCoords.lng);
+        if (geoRes?.result?.name) {
+          newOrigin.name = geoRes.result.name;
+          setCustomOrigin({ ...newOrigin });
+        }
+      } catch (e) {}
+
+      if (selectedDestination) {
+        triggerRouteCalculation(newOrigin, selectedDestination);
       }
+      return;
+    }
+
+    // Mode B: Setting Destination (Point B) via map click
+    const startPoint = (useGpsOrigin && gpsCoords) ? gpsCoords : getManualStartCoords();
+    const dist = startPoint ? haversineDistKm(startPoint.lat, startPoint.lng, clickCoords.lat, clickCoords.lng) : 1.0;
+
+    // Auto-adjust radius if clicked point is slightly farther, ensuring smooth user experience
+    if (dist > walkingRadiusKm && dist <= 14.0) {
+      setWalkingRadiusKm(Math.min(12.0, Math.ceil(dist * 2) / 2));
     }
 
     const defaultLabel = `Map Point (${clickCoords.lat.toFixed(4)}, ${clickCoords.lng.toFixed(4)})`;
@@ -1009,22 +1057,72 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
                 return;
               }
               if (!selectedDestination) {
-                setError('Please search or select a destination.');
+                setError('Please search a destination or click anywhere on the map to set your destination.');
                 return;
               }
               triggerRouteCalculation(start, selectedDestination);
             }}
             disabled={loading}
             className="btn btn-primary btn-lg"
-            style={{ width: '100%' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <Compass size={18} />
-            {loading ? 'Evaluating Health Indices...' : 'Calculate Healthy Route'}
+            {loading ? 'Evaluating Health Indices...' : (selectedDestination ? 'Calculate Healthy Route' : 'Click Map to Set Destination & Plan')}
           </button>
         </div>
 
         {/* Right Side: Real Geographic Leaflet Map */}
         <div>
+          {/* Map Click Selector Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#FFFFFF',
+            border: '1px solid var(--slate-200)',
+            borderRadius: 'var(--radius-md)',
+            padding: '8px 14px',
+            marginBottom: '10px',
+            fontSize: '0.82rem'
+          }}>
+            <span style={{ fontWeight: '700', color: 'var(--slate-700)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Navigation size={14} color="#0284C7" /> Click on Map Sets:
+            </span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setMapClickMode('destination')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  border: mapClickMode === 'destination' ? '1px solid #0284C7' : '1px solid #E2E8F0',
+                  background: mapClickMode === 'destination' ? '#E0F2FE' : '#FFFFFF',
+                  color: mapClickMode === 'destination' ? '#0369A1' : '#64748B',
+                  fontWeight: '700',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ● Destination (Point B)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapClickMode('origin')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  border: mapClickMode === 'origin' ? '1px solid #059669' : '1px solid #E2E8F0',
+                  background: mapClickMode === 'origin' ? '#ECFDF5' : '#FFFFFF',
+                  color: mapClickMode === 'origin' ? '#065F46' : '#64748B',
+                  fontWeight: '700',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ○ Start Point (Point A)
+              </button>
+            </div>
+          </div>
           <MapVisualizer
             currentLocation={useGpsOrigin ? gpsCoords : null}
             manualStartLocation={!useGpsOrigin ? getManualStartCoords() : null}

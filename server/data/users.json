@@ -3,9 +3,9 @@
     "id": "U-DEMO-WALKER",
     "name": "Rahul",
     "email": "walker@ecowalk.local",
-    "passwordHash": "$2a$08$jVQMj40R.GuNoHy5MC9TWOsR5d246rfs2vhsBN1CM1OeJrNmmZhxW",
+    "passwordHash": "$2a$08$0CbN.Pq3PblquxSiEiQ8Bu.lIT3W.jY37uDMSFbeQqLx5RL4n0X4i",
     "role": "walker",
-    "walkingSpeed": "brisk",
+    "walkingSpeed": "moderate",
     "preferences": {
       "prioritizeGreenery": true,
       "prioritizeSafety": true,
@@ -19,10 +19,10 @@
       }
     },
     "stats": {
-      "totalDistanceKm": 21.98,
-      "totalWalks": 14,
-      "totalCalories": 1362,
-      "co2SavedKg": 3.77,
+      "totalDistanceKm": 18.4,
+      "totalWalks": 12,
+      "totalCalories": 1140,
+      "co2SavedKg": 3.15,
       "reportsSubmitted": 2
     },
     "createdAt": "2026-02-15T09:00:00.000Z"
@@ -31,7 +31,7 @@
     "id": "U-DEMO-ADMIN",
     "name": "Rakshith",
     "email": "admin@ecowalk.local",
-    "passwordHash": "$2a$08$kU0yszfNqswVkVHnRw9V1Ouh3V4/Gl8duDY8z6dGntiWoegg95cF6",
+    "passwordHash": "$2a$08$2pkBOT1gQWYILjn3aSy5GeHk2e4idrU5kP3JwI3KpaI/1AECB1Be2",
     "role": "admin",
     "walkingSpeed": "brisk",
     "preferences": {
@@ -54,141 +54,5 @@
       "reportsSubmitted": 5
     },
     "createdAt": "2026-01-10T10:00:00.000Z"
-  },
-  {
-    "id": "usr_1793891557248",
-    "name": "Dr. Jane Walker",
-    "email": "phase1_test_1793891557248@ecowalk.org",
-    "password": "SecurePassword123!",
-    "role": "user",
-    "preferences": {
-      "prioritizeAirQuality": true,
-      "prioritizeGreenery": true
-    },
-    "walkingSpeed": "moderate",
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-11-05T15:12:37.248Z"
-  },
-  {
-    "id": "U-DBD55F6D",
-    "name": "Privilege Escalation Tester",
-    "email": "test_walker_1793891906908@ecowalk.local",
-    "passwordHash": "$2a$08$mOHcxO87RbNjRN8Xh31mZ.4Exwx8Oe1peJMm4ojTWAL2ZgJ5OqGAO",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-11-05T15:18:26.950Z"
-  },
-  {
-    "id": "U-A9255436",
-    "name": "Kavya Raman",
-    "email": "walker_1793891930307@ecowalk.local",
-    "passwordHash": "$2a$08$X5mrnATY15qFlmF7VPRG9OEFtvroVzqXF8T44R.H1HP2ThUnyZhCS",
-    "role": "walker",
-    "walkingSpeed": "moderate",
-    "preferences": {
-      "prioritizeGreenery": true,
-      "prioritizeSafety": true,
-      "avoidPollution": true,
-      "avoidPotholes": true,
-      "importanceWeights": {
-        "greenery": 0.35,
-        "safety": 0.25,
-        "airQuality": 0.25,
-        "roadCondition": 0.15
-      }
-    },
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 1
-    },
-    "createdAt": "2026-11-05T15:18:50.372Z"
-  },
-  {
-    "id": "usr_1793892034490",
-    "name": "Dr. Jane Walker",
-    "email": "phase1_test_1793892034490@ecowalk.org",
-    "password": "SecurePassword123!",
-    "role": "user",
-    "preferences": {
-      "prioritizeAirQuality": true,
-      "prioritizeGreenery": true
-    },
-    "walkingSpeed": "moderate",
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-11-05T15:20:34.490Z"
-  },
-  {
-    "id": "usr_1793892131570",
-    "name": "Dr. Jane Walker",
-    "email": "phase1_test_1793892131570@ecowalk.org",
-    "password": "SecurePassword123!",
-    "role": "user",
-    "preferences": {
-      "prioritizeAirQuality": true,
-      "prioritizeGreenery": true
-    },
-    "walkingSpeed": "moderate",
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-11-05T15:22:11.570Z"
-  },
-  {
-    "id": "usr_1793892181463",
-    "name": "Dr. Jane Walker",
-    "email": "phase1_test_1793892181463@ecowalk.org",
-    "password": "SecurePassword123!",
-    "role": "user",
-    "preferences": {
-      "prioritizeAirQuality": true,
-      "prioritizeGreenery": true
-    },
-    "walkingSpeed": "moderate",
-    "stats": {
-      "totalDistanceKm": 0,
-      "totalWalks": 0,
-      "totalCalories": 0,
-      "co2SavedKg": 0,
-      "reportsSubmitted": 0
-    },
-    "createdAt": "2026-11-05T15:23:01.463Z"
   }
 ]

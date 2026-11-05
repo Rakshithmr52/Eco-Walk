@@ -685,14 +685,14 @@ export default function MapVisualizer({
                 <div style={{ padding: '4px', maxWidth: '250px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span className={`badge ${report.severity === 'critical' || report.severity === 'high' ? 'badge-rose' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
-                      <AlertTriangle size={11} /> {report.issueType.replace('_', ' ').toUpperCase()}
+                      <AlertTriangle size={11} /> {(report.issueType || report.type || 'hazard').replace('_', ' ').toUpperCase()}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '800' }}>
                       👥 {currentConfirms} {currentConfirms === 1 ? 'Walker' : 'Walkers'}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--slate-900)' }}>
-                    {report.locationName}
+                    {report.locationName || report.title || report.location?.address || 'Reported Hazard'}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginTop: '4px', lineHeight: '1.4' }}>
                     {report.description}

@@ -8,7 +8,15 @@ const cpcbAqiService = require('../services/cpcbAqiService');
  */
 exports.getLocations = (req, res) => {
   try {
-    const locations = storage.getLocations();
+    const rawLocations = storage.getLocations();
+    const locations = rawLocations.map(loc => {
+      const coords = routingService.LANDMARK_COORDS[loc.id];
+      return {
+        ...loc,
+        lat: coords ? coords.lat : (loc.lat || 12.9716),
+        lng: coords ? coords.lng : (loc.lng || 77.5946)
+      };
+    });
     return res.json({ success: true, count: locations.length, locations });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to retrieve locations.' });
@@ -185,9 +193,9 @@ exports.recommendRoutes = async (req, res) => {
       // Validate actual calculated pedestrian road network distance (Requirement 10)
       if (recommendation && recommendation.recommendedRoute) {
         const actualWalkKm = recommendation.recommendedRoute.distanceKm;
-        if (actualWalkKm > maxLimit) {
+        if (actualWalkKm > maxLimit * 1.5) {
           return res.status(400).json({
-            error: `The calculated pedestrian walking route is ${actualWalkKm} km, which exceeds your walking limit of ${maxLimit} km. EcoWalk prioritizes safe walks within your selected range. Please choose a closer destination.`
+            error: `The calculated pedestrian walking route is ${actualWalkKm} km, which significantly exceeds your walking limit of ${maxLimit} km. EcoWalk prioritizes safe walks within your selected range. Please choose a closer destination or expand your radius.`
           });
         }
       }

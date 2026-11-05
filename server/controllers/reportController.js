@@ -10,13 +10,13 @@ exports.getReports = (req, res) => {
     let reports = storage.getReports();
 
     if (status) {
-      reports = reports.filter(r => r.status.toLowerCase() === status.toLowerCase());
+      reports = reports.filter(r => (r.status || '').toLowerCase() === status.toLowerCase());
     }
     if (routeId) {
       reports = reports.filter(r => r.routeId === routeId);
     }
     if (issueType) {
-      reports = reports.filter(r => r.issueType.toLowerCase() === issueType.toLowerCase());
+      reports = reports.filter(r => (r.issueType || r.type || '').toLowerCase() === issueType.toLowerCase());
     }
 
     return res.json({ success: true, count: reports.length, reports });
@@ -98,16 +98,14 @@ exports.confirmReport = (req, res) => {
  */
 exports.createReport = (req, res) => {
   try {
-    const {
-      routeId,
-      routeName,
-      locationName,
-      coordinates,
-      issueType,
-      severity = 'moderate',
-      description,
-      imageUrl = ''
-    } = req.body;
+    const routeId = req.body.routeId;
+    const routeName = req.body.routeName;
+    const locationName = req.body.locationName || req.body.title || req.body.location?.address;
+    const coordinates = req.body.coordinates || (req.body.lat && req.body.lng ? [req.body.lat, req.body.lng] : null);
+    const issueType = req.body.issueType || req.body.type;
+    const severity = req.body.severity || 'moderate';
+    const description = req.body.description;
+    const imageUrl = req.body.imageUrl || '';
 
     if (!locationName || !issueType || !description) {
       return res.status(400).json({ error: 'Location, issue type, and description are required.' });
@@ -174,7 +172,7 @@ exports.createReport = (req, res) => {
 
     // Automated Proximity De-duplication Check (within 35 meters)
     const nearbySameType = storage.getNearbyReports(lat, lng, 35)
-      .filter(r => r.issueType.toLowerCase() === issueType.toLowerCase());
+      .filter(r => (r.issueType || r.type || '').toLowerCase() === issueType.toLowerCase());
 
     if (nearbySameType.length > 0) {
       const existing = nearbySameType[0];
@@ -192,13 +190,19 @@ exports.createReport = (req, res) => {
       routeId: routeId || 'R-COMMUNITY',
       routeName: routeName || locationName,
       locationName: locationName.trim(),
+      title: locationName.trim(),
       coordinates: [lat, lng],
+      lat,
+      lng,
+      location: { address: locationName.trim() },
       issueType,
+      type: issueType,
       severity: ['low', 'moderate', 'high', 'critical'].includes(severity) ? severity : 'moderate',
       status: 'pending',
       description: description.trim(),
       imageUrl: imageUrl || '',
       reportedBy: reporterName,
+      userName: reporterName,
       userEmail: reporterEmail,
       confirmations: 1,
       confirmedBy: [reporterEmail],

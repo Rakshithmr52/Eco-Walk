@@ -146,12 +146,70 @@ const storage = {
   },
 
   // Reports (Potholes, road conditions)
-  getReports: () => readData('reports'),
-  getReportById: (id) => readData('reports').find(rep => rep.id === id),
-  getReportsByRouteId: (routeId) => readData('reports').filter(rep => rep.routeId === routeId),
+  getReports: () => readData('reports').map(r => {
+    const lat = typeof r.lat === 'number' ? r.lat : (Array.isArray(r.coordinates) && typeof r.coordinates[0] === 'number' ? r.coordinates[0] : 12.9716);
+    const lng = typeof r.lng === 'number' ? r.lng : (Array.isArray(r.coordinates) && typeof r.coordinates[1] === 'number' ? r.coordinates[1] : 77.5946);
+    const locName = r.locationName || r.location?.address || r.title || 'Reported Location';
+    const issue = r.issueType || r.type || 'pothole';
+    const reporter = r.reportedBy || r.userName || 'Community Walker';
+    const userMail = r.userEmail || (r.userId ? `${r.userId}@ecowalk.local` : 'walker@ecowalk.local');
+
+    return {
+      ...r,
+      locationName: locName,
+      routeName: r.routeName || locName,
+      title: r.title || locName,
+      issueType: issue,
+      type: issue,
+      reportedBy: reporter,
+      userName: reporter,
+      userEmail: userMail,
+      coordinates: [lat, lng],
+      lat,
+      lng,
+      location: r.location || { address: locName }
+    };
+  }),
+  getReportById: (id) => {
+    const r = readData('reports').find(rep => rep.id === id);
+    if (!r) return null;
+    const lat = typeof r.lat === 'number' ? r.lat : (Array.isArray(r.coordinates) && typeof r.coordinates[0] === 'number' ? r.coordinates[0] : 12.9716);
+    const lng = typeof r.lng === 'number' ? r.lng : (Array.isArray(r.coordinates) && typeof r.coordinates[1] === 'number' ? r.coordinates[1] : 77.5946);
+    const locName = r.locationName || r.location?.address || r.title || 'Reported Location';
+    const issue = r.issueType || r.type || 'pothole';
+    const reporter = r.reportedBy || r.userName || 'Community Walker';
+    const userMail = r.userEmail || (r.userId ? `${r.userId}@ecowalk.local` : 'walker@ecowalk.local');
+
+    return {
+      ...r,
+      locationName: locName,
+      routeName: r.routeName || locName,
+      title: r.title || locName,
+      issueType: issue,
+      type: issue,
+      reportedBy: reporter,
+      userName: reporter,
+      userEmail: userMail,
+      coordinates: [lat, lng],
+      lat,
+      lng,
+      location: r.location || { address: locName }
+    };
+  },
+  getReportsByRouteId: (routeId) => readData('reports').filter(rep => rep.routeId === routeId).map(r => ({
+    ...r,
+    locationName: r.locationName || r.location?.address || r.title || 'Reported Location',
+    issueType: r.issueType || r.type || 'pothole',
+    type: r.type || r.issueType || 'pothole'
+  })),
   getActiveReportsForRoute: (routeId) => readData('reports').filter(
     rep => rep.routeId === routeId && (rep.status === 'pending' || rep.status === 'verified')
-  ),
+  ).map(r => ({
+    ...r,
+    locationName: r.locationName || r.location?.address || r.title || 'Reported Location',
+    issueType: r.issueType || r.type || 'pothole',
+    type: r.type || r.issueType || 'pothole'
+  })),
   getNearbyReports: (lat, lng, radiusMeters = 80) => {
     const reports = readData('reports');
     const active = reports.filter(r => r.status === 'pending' || r.status === 'verified');
