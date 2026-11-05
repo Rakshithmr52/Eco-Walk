@@ -14,7 +14,7 @@ function MainLayout() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [plannerStart, setPlannerStart] = useState('L1');
-  const [plannerEnd, setPlannerEnd] = useState('L4');
+  const [plannerEnd, setPlannerEnd] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleQuickPlan = (startId, endId) => {

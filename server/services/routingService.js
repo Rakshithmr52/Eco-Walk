@@ -19,6 +19,22 @@ const storage = require('../models/storage');
 // Simple in-memory geocoding cache to prevent duplicate requests
 const geocodeCache = new Map();
 
+// Real geographic coordinates for predefined Bengaluru district landmarks
+const LANDMARK_COORDS = {
+  L1: { lat: 12.9507, lng: 77.5848 }, // Lalbagh Botanical Gardens
+  L2: { lat: 12.9796, lng: 77.5908 }, // Vidhana Soudha & Attara Kacheri
+  L3: { lat: 12.9815, lng: 77.6201 }, // Ulsoor Lake Promenade
+  L4: { lat: 13.0219, lng: 77.5671 }, // IISc Campus Green Spine
+  L5: { lat: 12.9763, lng: 77.5929 }, // State Central Library (Cubbon Park)
+  L6: { lat: 12.9438, lng: 77.5707 }, // Gandhi Bazaar Heritage Walk
+  L7: { lat: 12.9781, lng: 77.5696 }, // Majestic Kempegowda Station
+  L8: { lat: 12.9698, lng: 77.5932 }, // Kanteerava Outdoor Stadium Loop
+  L9: { lat: 12.9299, lng: 77.5824 }, // Jayanagar 4th Block Boulevard
+  L10: { lat: 12.9716, lng: 77.5946 }, // Bengaluru City Hall (Corporation)
+  L11: { lat: 13.0068, lng: 77.5750 }, // Sankey Tank Forest Trail
+  L12: { lat: 13.0382, lng: 77.5913 }  // Hebbal Wetland Sanctuary
+};
+
 /**
  * Calculate distance between two coordinates using Haversine formula (km)
  */
@@ -296,12 +312,16 @@ async function searchDestinations(query, userLat = 12.9716, userLng = 77.5946) {
  * Reverse Geocode coordinates to street, area, or landmark name
  */
 async function reverseGeocode(lat, lng) {
-  // 1. Check proximity to known local district landmarks (within 150m)
+  // 1. Check proximity to known local district landmarks (within 350m)
   const locations = storage.getLocations();
   for (const loc of locations) {
-    if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
-      const distM = haversineDistance(lat, lng, loc.lat, loc.lng) * 1000;
-      if (distM <= 150) {
+    const coords = LANDMARK_COORDS[loc.id] || {
+      lat: typeof loc.lat === 'number' ? loc.lat : (loc.y ? 12.93 + (loc.y / 700) * 0.1 : null),
+      lng: typeof loc.lng === 'number' ? loc.lng : (loc.x ? 77.56 + (loc.x / 1000) * 0.08 : null)
+    };
+    if (coords.lat !== null && coords.lng !== null) {
+      const distM = haversineDistance(lat, lng, coords.lat, coords.lng) * 1000;
+      if (distM <= 350) {
         return {
           name: `Near ${loc.name}`,
           road: loc.shortName,

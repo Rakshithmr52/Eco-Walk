@@ -30,7 +30,7 @@ import RouteComparisonTable from '../components/RouteComparisonTable';
 import FeedbackModal from '../components/FeedbackModal';
 import ReportHazardModal from '../components/ReportHazardModal';
 
-export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' }) {
+export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   const { user } = useAuth();
   const [locations, setLocations] = useState([]);
 
@@ -43,13 +43,13 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
   // Manual Origin Fallback State
   const [manualStartNodeId, setManualStartNodeId] = useState(initialStart);
 
-  // Destination Search & Selection State
+  // Destination Search & Selection State (Left unselected initially so user explicitly chooses)
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState(null); // { lat, lng, name, label }
-  const [fallbackEndNodeId, setFallbackEndNodeId] = useState(initialEnd);
+  const [fallbackEndNodeId, setFallbackEndNodeId] = useState(initialEnd || '');
   const searchDebounceRef = useRef(null);
 
   // Preference switches
@@ -140,16 +140,20 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
         setLocations(locs);
         setActiveHazards(hazardData.reports || []);
 
-        // Pre-configure initial destination from default landmark L4 (IISc Campus)
-        const destLoc = locs.find(l => l.id === initialEnd);
-        if (destLoc) {
-          const initialDestObj = {
-            name: destLoc.shortName || destLoc.name,
-            label: `${destLoc.name} (${destLoc.type})`,
-            lat: destLoc.lat || (destLoc.y ? 12.93 + (destLoc.y / 700) * 0.1 : 13.0219),
-            lng: destLoc.lng || (destLoc.x ? 77.56 + (destLoc.x / 1000) * 0.08 : 77.5671)
-          };
-          setSelectedDestination(initialDestObj);
+        // Only set destination if explicitly provided (e.g. from a quick plan action)
+        // Otherwise, destination is left unselected so the user chooses their own destination
+        if (initialEnd) {
+          const destLoc = locs.find(l => l.id === initialEnd);
+          if (destLoc) {
+            const initialDestObj = {
+              name: destLoc.shortName || destLoc.name,
+              label: `${destLoc.name} (${destLoc.type})`,
+              lat: destLoc.lat || (destLoc.y ? 12.93 + (destLoc.y / 700) * 0.1 : 13.0219),
+              lng: destLoc.lng || (destLoc.x ? 77.56 + (destLoc.x / 1000) * 0.08 : 77.5671)
+            };
+            setSelectedDestination(initialDestObj);
+            setSearchQuery(initialDestObj.name);
+          }
         }
 
         // Automatic GPS request on entering the route planner
@@ -160,6 +164,18 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
     }
     init();
   }, []);
+
+  /**
+   * Clear destination and reset computed routes so user can choose a new destination
+   */
+  const handleClearDestination = () => {
+    setSelectedDestination(null);
+    setSearchQuery('');
+    setFallbackEndNodeId('');
+    setRecommendationResult(null);
+    setInspectedRoute(null);
+    setError('');
+  };
 
   /**
    * Debounced Destination Autocomplete Search
@@ -679,8 +695,8 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
               </div>
             )}
 
-            {/* Destination Selection Confirmation Pill */}
-            {selectedDestination && (
+            {/* Destination Selection Confirmation Pill or Prompt */}
+            {selectedDestination ? (
               <div style={{
                 marginTop: '8px',
                 padding: '8px 12px',
@@ -692,12 +708,49 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
                 justifyContent: 'space-between',
                 fontSize: '0.8rem'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0369A1', fontWeight: '700' }}>
-                  <MapPin size={14} /> {selectedDestination.name}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0369A1', fontWeight: '700', overflow: 'hidden' }}>
+                  <MapPin size={14} style={{ flexShrink: 0 }} />
+                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {selectedDestination.name}
+                  </span>
                 </div>
-                <span style={{ color: 'var(--slate-500)', fontSize: '0.72rem' }}>
-                  {selectedDestination.lat.toFixed(4)}, {selectedDestination.lng.toFixed(4)}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span style={{ color: 'var(--slate-500)', fontSize: '0.72rem' }}>
+                    {selectedDestination.lat.toFixed(4)}, {selectedDestination.lng.toFixed(4)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearDestination}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748B',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title="Clear selected destination"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                background: '#F8FAFC',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed #CBD5E1',
+                fontSize: '0.78rem',
+                color: '#64748B',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <MapPin size={15} color="#0284C7" style={{ flexShrink: 0 }} />
+                <span>Search above, pick from the landmark list below, or click anywhere directly on the map.</span>
               </div>
             )}
 
@@ -706,10 +759,15 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
               <select
                 className="form-select"
                 style={{ fontSize: '0.8rem', padding: '6px 10px' }}
-                value={fallbackEndNodeId}
+                value={fallbackEndNodeId || ''}
                 onChange={(e) => {
-                  setFallbackEndNodeId(e.target.value);
-                  const loc = locations.find(l => l.id === e.target.value);
+                  const val = e.target.value;
+                  setFallbackEndNodeId(val);
+                  if (!val) {
+                    handleClearDestination();
+                    return;
+                  }
+                  const loc = locations.find(l => l.id === val);
                   if (loc) {
                     handleSelectDestination({
                       name: loc.shortName || loc.name,
@@ -720,7 +778,7 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
                   }
                 }}
               >
-                <option value="">-- Or Select Predefined City Landmark --</option>
+                <option value="">-- Or Choose a Destination Landmark --</option>
                 {locations.map(loc => (
                   <option key={loc.id} value={loc.id}>
                     {loc.shortName} ({loc.type})
@@ -884,6 +942,40 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = 'L4' })
           </div>
         </div>
       </div>
+
+      {/* Informational Guidance Banner when waiting for Destination */}
+      {!selectedDestination && (
+        <div className="card" style={{
+          marginTop: '24px',
+          padding: '28px 24px',
+          textAlign: 'center',
+          backgroundColor: '#FFFFFF',
+          border: '1px dashed #93C5FD',
+          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.05)'
+        }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            backgroundColor: '#E0F2FE',
+            color: '#0284C7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px auto'
+          }}>
+            <MapPin size={22} />
+          </div>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0F172A', marginBottom: '6px' }}>
+            {useGpsOrigin && gpsCoords ? 'Current Location Acquired — Please Choose Your Destination' : 'Choose Your Walking Destination'}
+          </h3>
+          <p style={{ fontSize: '0.86rem', color: '#64748B', maxWidth: '540px', margin: '0 auto', lineHeight: '1.5' }}>
+            {useGpsOrigin && gpsCoords
+              ? 'Your device GPS location is set as Point A. Search for a destination in the search box, pick from the landmark list, or click anywhere directly on the map to generate healthy walking routes.'
+              : 'Search for any destination, pick from the landmark list, or click anywhere on the map to set your destination.'}
+          </p>
+        </div>
+      )}
 
       {/* Recommended Route Card (Hero Feature) */}
       {inspectedRoute && (
