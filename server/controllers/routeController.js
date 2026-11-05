@@ -1,6 +1,7 @@
 const storage = require('../models/storage');
 const recommendationEngine = require('../services/recommendationEngine');
 const routingService = require('../services/routingService');
+const cpcbAqiService = require('../services/cpcbAqiService');
 
 /**
  * Get all available district landmarks/nodes
@@ -15,15 +16,28 @@ exports.getLocations = (req, res) => {
 };
 
 /**
+ * Get all official CPCB Continuous Ambient Air Quality Monitoring Stations (CAAQMS) in Bengaluru
+ */
+exports.getCpcbStations = async (req, res) => {
+  try {
+    const stations = await cpcbAqiService.getAllCpcbStations();
+    return res.json({ success: true, count: stations.length, stations });
+  } catch (error) {
+    console.error('CPCB Stations Error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve CPCB monitoring stations.' });
+  }
+};
+
+/**
  * Destination Search & Geocoding (Server-side, protects API keys, avoids unrestricted Nominatim)
- * Constrains destination results within a healthy walking radius (default: 5.0 km)
+ * Constrains destination results within a healthy walking radius (default: 8.0 km)
  */
 exports.searchDestinations = async (req, res) => {
   try {
     const query = req.query.query || req.query.q || '';
     const lat = parseFloat(req.query.lat) || 12.9716;
     const lng = parseFloat(req.query.lon || req.query.lng) || 77.5946;
-    const radius = parseFloat(req.query.radius) || 5.0;
+    const radius = parseFloat(req.query.radius) || 8.0;
 
     if (!query || query.trim().length < 2) {
       return res.json({ success: true, count: 0, results: [] });
@@ -118,6 +132,7 @@ exports.recommendRoutes = async (req, res) => {
       endNodeId, 
       preferences, 
       walkingSpeed,
+      maxWalkingDistanceKm,
       logWalk 
     } = req.body;
 
@@ -149,10 +164,11 @@ exports.recommendRoutes = async (req, res) => {
         return res.status(400).json({ error: 'Start and destination locations are too close to generate a walking route.' });
       }
 
-      // Enforce 5 km walking radius limit
-      if (dist > 5.0) {
+      // Enforce walking radius limit (default: 8.0 km target range)
+      const maxLimit = typeof maxWalkingDistanceKm === 'number' && maxWalkingDistanceKm > 0 ? maxWalkingDistanceKm : 8.0;
+      if (dist > maxLimit) {
         return res.status(400).json({
-          error: `Destination is ${dist.toFixed(1)} km away. EcoWalk is designed for healthy pedestrian walks within a 5 km walking radius. Please select a closer destination.`
+          error: `Destination is ${dist.toFixed(1)} km away. EcoWalk is designed for healthy pedestrian walks within an ${maxLimit} km walking radius. Please select a closer destination or adjust your walking range.`
         });
       }
 
@@ -162,8 +178,19 @@ exports.recommendRoutes = async (req, res) => {
         startLabel: startLabel || 'Current GPS Location',
         destinationLabel: destinationLabel || 'Selected Destination',
         userPreferences: effectivePrefs,
-        walkingSpeed: effectiveSpeed
+        walkingSpeed: effectiveSpeed,
+        maxWalkingDistanceKm: maxLimit
       });
+
+      // Validate actual calculated pedestrian road network distance (Requirement 10)
+      if (recommendation && recommendation.recommendedRoute) {
+        const actualWalkKm = recommendation.recommendedRoute.distanceKm;
+        if (actualWalkKm > maxLimit) {
+          return res.status(400).json({
+            error: `The calculated pedestrian walking route is ${actualWalkKm} km, which exceeds your walking limit of ${maxLimit} km. EcoWalk prioritizes safe walks within your selected range. Please choose a closer destination.`
+          });
+        }
+      }
     } 
     // 2. Fallback to startNodeId / endNodeId (backward compatibility)
     else if (startNodeId && endNodeId) {

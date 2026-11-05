@@ -52,6 +52,7 @@ export default function RouteComparisonTable({
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Greenery</th>
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Safety</th>
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Clean Air</th>
+              <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>CPCB AQI Station</th>
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Road Quality</th>
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Hazards</th>
               <th style={{ padding: '12px 14px', fontWeight: '700', color: 'var(--slate-700)', textAlign: 'center' }}>Action</th>
@@ -136,6 +137,32 @@ export default function RouteComparisonTable({
                     <span style={{ fontWeight: '700', color: '#0D9488' }}>
                       {Math.max(0, 100 - r.trafficPollutionRisk)}%
                     </span>
+                  </td>
+
+                  {/* CPCB Air Quality */}
+                  <td style={{ padding: '14px', textAlign: 'center' }}>
+                    {r.cpcbStation ? (
+                      <div>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          fontWeight: '800',
+                          fontSize: '0.74rem',
+                          backgroundColor: r.cpcbAqi <= 50 ? '#D1FAE5' : r.cpcbAqi <= 100 ? '#ECFDF5' : r.cpcbAqi <= 200 ? '#FEF3C7' : '#FEE2E2',
+                          color: r.cpcbAqi <= 100 ? '#065F46' : r.cpcbAqi <= 200 ? '#B45309' : '#DC2626'
+                        }}>
+                          AQI {r.cpcbAqi} ({r.cpcbCategory})
+                        </span>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--slate-500)', marginTop: '2px' }} title={r.cpcbStation.name}>
+                          {r.cpcbStation.locality} ({r.cpcbDistanceKm || r.cpcbStation.distanceToRouteKm || 0}km)
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)' }}>
+                        N/A
+                      </span>
+                    )}
                   </td>
 
                   {/* Road Quality */}

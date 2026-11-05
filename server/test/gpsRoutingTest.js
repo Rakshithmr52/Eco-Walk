@@ -143,14 +143,14 @@ async function runGpsRoutingTests() {
     assert.ok(identicalCoords.data.error.includes('too close'));
   });
 
-  // Test 5 km walking radius enforcement
+  // Test walking radius enforcement (default 8 km)
   const distantCoords = await post('/api/routes/recommend', {
     startCoords: { lat: 12.9507, lng: 77.5848 }, // Lalbagh
     destinationCoords: { lat: 12.8452, lng: 77.6602 } // Electronic City (~14 km away)
   });
-  test('Destination beyond 5 km walking radius rejected with 400 Bad Request', () => {
+  test('Destination beyond walking radius rejected with 400 Bad Request', () => {
     assert.strictEqual(distantCoords.status, 400);
-    assert.ok(distantCoords.data.error.includes('5 km'), 'Mentions 5 km walking radius limit');
+    assert.ok(distantCoords.data.error.includes('km walking radius'), 'Mentions walking radius limit');
   });
 
   const missingCoords = await post('/api/routes/recommend', {

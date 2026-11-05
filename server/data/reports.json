@@ -1,5 +1,190 @@
 [
   {
+    "id": "rep_1793892187459",
+    "userId": "usr_1793892181463",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-05T15:23:07.459Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-05T15:23:07.465Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
+    "id": "rep_1793892137442",
+    "userId": "usr_1793892131570",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-05T15:22:17.442Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-05T15:22:17.447Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
+    "id": "rep_1793892040507",
+    "userId": "usr_1793892034490",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-05T15:20:40.507Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-05T15:20:40.511Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
+    "id": "REP-776E74",
+    "routeId": "R-L1-L4-1",
+    "routeName": "Emerald Arboretum Walkway",
+    "locationName": "Sankey Tank Crossroad",
+    "coordinates": [
+      12.97,
+      77.6016
+    ],
+    "issueType": "pothole",
+    "severity": "critical",
+    "status": "resolved",
+    "description": "Deep rainwater puddle and broken asphalt after monsoon shower.",
+    "imageUrl": "",
+    "reportedBy": "Kavya Raman",
+    "userEmail": "walker_1793891930307@ecowalk.local",
+    "confirmations": 1,
+    "confirmedBy": [
+      "walker_1793891930307@ecowalk.local"
+    ],
+    "lastConfirmedAt": "2026-11-05T15:18:50.506Z",
+    "createdAt": "2026-11-05T15:18:50.506Z",
+    "verifiedAt": "2026-11-05T15:18:50.532Z",
+    "resolvedAt": "2026-11-05T15:18:50.538Z",
+    "rejectedAt": null,
+    "adminNotes": "Pothole filled and hot-mix asphalt leveled."
+  },
+  {
+    "id": "REP-0D4C2D",
+    "routeId": "R-L1-L4-1",
+    "routeName": "Emerald Arboretum Walkway",
+    "locationName": "Test Intersection",
+    "coordinates": [
+      12.968571,
+      77.572
+    ],
+    "issueType": "pothole",
+    "severity": "critical",
+    "status": "resolved",
+    "description": "Deep road hazard for automated test verification.",
+    "imageUrl": "",
+    "reportedBy": "QA Tester",
+    "userEmail": "qa@ecowalk.local",
+    "confirmations": 1,
+    "confirmedBy": [
+      "qa@ecowalk.local"
+    ],
+    "lastConfirmedAt": "2026-11-05T15:18:26.985Z",
+    "createdAt": "2026-11-05T15:18:26.985Z",
+    "verifiedAt": "2026-11-05T15:18:26.996Z",
+    "resolvedAt": "2026-11-05T15:18:27.004Z",
+    "rejectedAt": null,
+    "adminNotes": "Repaired and asphalt patched."
+  },
+  {
+    "id": "REP-ED0538",
+    "routeId": "R-COMMUNITY",
+    "routeName": "Hebbal Wetland Overpass",
+    "locationName": "Hebbal Wetland Overpass",
+    "coordinates": [
+      13.113517362197967,
+      77.69673135476842
+    ],
+    "issueType": "obstruction",
+    "severity": "moderate",
+    "status": "pending",
+    "description": "Fallen tree branch across pedestrian boardwalk",
+    "imageUrl": "",
+    "reportedBy": "Community Walker",
+    "userEmail": "new_reporter@ecowalk.local",
+    "confirmations": 1,
+    "confirmedBy": [
+      "new_reporter@ecowalk.local"
+    ],
+    "lastConfirmedAt": "2026-11-05T15:18:09.919Z",
+    "createdAt": "2026-11-05T15:18:09.919Z",
+    "verifiedAt": null,
+    "resolvedAt": null,
+    "rejectedAt": null,
+    "adminNotes": ""
+  },
+  {
+    "id": "rep_1793891557357",
+    "userId": "usr_1793891557248",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-05T15:12:37.357Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-05T15:12:37.362Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
     "id": "REP-101",
     "routeId": "ROUTE-REAL-L4",
     "routeName": "IISc Campus Green Corridor",
@@ -15,14 +200,15 @@
     "imageUrl": "",
     "reportedBy": "Aarav Sharma",
     "userEmail": "walker@ecowalk.local",
-    "confirmations": 4,
+    "confirmations": 5,
     "confirmedBy": [
       "walker@ecowalk.local",
       "kavya@ecowalk.local",
       "rahul@ecowalk.local",
-      "priya@ecowalk.local"
+      "priya@ecowalk.local",
+      "dedup_walker@ecowalk.local"
     ],
-    "lastConfirmedAt": "2026-11-03T14:10:00.000Z",
+    "lastConfirmedAt": "2026-11-05T15:18:09.911Z",
     "createdAt": "2026-10-20T08:30:00.000Z",
     "verifiedAt": "2026-10-21T09:15:00.000Z",
     "adminNotes": "Auto-verified via 4 community walker confirmations. Warning cones placed."
@@ -38,20 +224,21 @@
     ],
     "issueType": "drainage",
     "severity": "moderate",
-    "status": "pending",
+    "status": "verified",
     "description": "Blocked stormwater drain causing foul water pooling across sidewalk after monsoon shower.",
     "imageUrl": "",
     "reportedBy": "Rahul",
     "userEmail": "walker@ecowalk.local",
-    "confirmations": 2,
+    "confirmations": 3,
     "confirmedBy": [
       "walker@ecowalk.local",
-      "anita@ecowalk.local"
+      "anita@ecowalk.local",
+      "third_walker@ecowalk.local"
     ],
-    "lastConfirmedAt": "2026-11-02T16:45:00.000Z",
+    "lastConfirmedAt": "2026-11-05T15:18:09.897Z",
     "createdAt": "2026-11-01T11:20:00.000Z",
-    "verifiedAt": null,
-    "adminNotes": ""
+    "verifiedAt": "2026-11-05T15:18:09.897Z",
+    "adminNotes": "Auto-verified via 3 community walker confirmations."
   },
   {
     "id": "REP-104",

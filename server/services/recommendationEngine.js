@@ -1,6 +1,7 @@
 const storage = require('../models/storage');
 const config = require('../config/config');
 const routingService = require('./routingService');
+const cpcbAqiService = require('./cpcbAqiService');
 
 /**
  * Multi-Criteria Rule-Based Healthy Route Recommendation Engine (Phase 1 Core)
@@ -186,13 +187,15 @@ function deriveWeights(preferences = {}) {
 
 /**
  * Spatial analysis to evaluate environmental metrics for a real GPS route
+ * Integrates official CPCB monitoring station data for pollution risk baseline
  */
-function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
+function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0, cpcbAssessment = null) {
   if (!waypoints || waypoints.length === 0) {
+    const baseRisk = cpcbAssessment ? cpcbAssessment.pollutionRisk : 35;
     return {
       greeneryScore: 60,
       safetyScore: 80,
-      trafficPollutionRisk: 40,
+      trafficPollutionRisk: baseRisk,
       roadConditionScore: 85
     };
   }
@@ -201,7 +204,6 @@ function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
   const sampleStep = Math.max(1, Math.floor(waypoints.length / 30));
   let greenMatches = 0;
   let totalSamples = 0;
-  let pollutionRiskSum = 0;
 
   for (let i = 0; i < waypoints.length; i += sampleStep) {
     const [wLat, wLng] = waypoints[i];
@@ -217,19 +219,6 @@ function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
       }
     }
     if (inGreenZone) greenMatches++;
-
-    // Proximity to emission corridors
-    let localRisk = 35; // baseline moderate urban emission
-    for (const em of HIGH_EMISSION_CORRIDORS) {
-      const d = routingService.haversineDistance(wLat, wLng, em.lat, em.lng);
-      if (d <= em.radiusKm) {
-        localRisk = Math.max(localRisk, em.pollutionRisk);
-      }
-    }
-    if (inGreenZone) {
-      localRisk = Math.min(localRisk, 22); // tree canopy filters particulate
-    }
-    pollutionRiskSum += localRisk;
   }
 
   // Step semantic clues from OpenStreetMap / OpenRouteService
@@ -269,24 +258,47 @@ function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
   let safetyScore = Math.round(70 + (pedStepFraction * 22) + (greenFraction * 8));
   safetyScore = Math.max(55, Math.min(95, safetyScore));
 
-  // Traffic Pollution Risk
-  let trafficPollutionRisk = Math.round(totalSamples > 0 ? (pollutionRiskSum / totalSamples) : 40);
-  trafficPollutionRisk = Math.max(12, Math.min(85, trafficPollutionRisk));
+  // Pollution Risk grounded in official CPCB monitoring station readings
+  let basePollutionRisk = cpcbAssessment && typeof cpcbAssessment.pollutionRisk === 'number'
+    ? cpcbAssessment.pollutionRisk
+    : 35;
 
-  // Road Condition Score
-  let roadConditionScore = 92;
+  // Modulate pollution risk by local microclimate: vegetative filtering reduces exposure; major arterial proximity increases
+  if (greenFraction > 0.4) {
+    basePollutionRisk = Math.max(10, basePollutionRisk - Math.round(greenFraction * 10)); // up to 10 pt reduction under dense canopy
+  }
+
+  // Check proximity to heavy vehicular corridors
+  let heavyCorridorNear = false;
+  for (let i = 0; i < waypoints.length; i += sampleStep) {
+    const [wLat, wLng] = waypoints[i];
+    for (const em of HIGH_EMISSION_CORRIDORS) {
+      const d = routingService.haversineDistance(wLat, wLng, em.lat, em.lng);
+      if (d <= em.radiusKm) {
+        heavyCorridorNear = true;
+        break;
+      }
+    }
+    if (heavyCorridorNear) break;
+  }
+
+  if (heavyCorridorNear) {
+    basePollutionRisk = Math.min(95, basePollutionRisk + 8);
+  }
 
   // Differentiate alternative candidate routes slightly if multiple alternatives exist
   if (routeIndex === 1) {
-    // Usually alternative 1 in ORS or OSRM is a slightly different avenue
-    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.85));
-    safetyScore = Math.max(55, Math.round(safetyScore * 0.92));
-    trafficPollutionRisk = Math.min(85, Math.round(trafficPollutionRisk * 1.2));
+    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.88));
+    safetyScore = Math.max(55, Math.round(safetyScore * 0.94));
+    basePollutionRisk = Math.min(95, Math.round(basePollutionRisk * 1.15));
   } else if (routeIndex > 1) {
-    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.75));
-    safetyScore = Math.max(55, Math.round(safetyScore * 0.88));
-    trafficPollutionRisk = Math.min(85, Math.round(trafficPollutionRisk * 1.3));
+    greeneryScore = Math.max(25, Math.round(greeneryScore * 0.80));
+    safetyScore = Math.max(55, Math.round(safetyScore * 0.90));
+    basePollutionRisk = Math.min(95, Math.round(basePollutionRisk * 1.25));
   }
+
+  let trafficPollutionRisk = Math.max(10, Math.min(95, basePollutionRisk));
+  let roadConditionScore = 92;
 
   return {
     greeneryScore,
@@ -302,37 +314,40 @@ function evaluateRouteEnvironment(waypoints = [], steps = [], routeIndex = 0) {
 function generateRecommendationReasons(route, isBestMatch, rankDelta = null) {
   const reasons = [];
 
-  // Greenery justification
-  if (route.greeneryScore >= 85) {
-    reasons.push(`Superior greenery density (${route.greeneryScore}%) with shaded tree canopies providing UV and heat protection.`);
-  } else if (route.greeneryScore >= 60) {
-    reasons.push(`Moderate natural landscape and foliage borders (${route.greeneryScore}% greenery index).`);
+  // Official CPCB Air Quality justification
+  if (route.cpcbStation) {
+    const cleanAirScore = 100 - route.trafficPollutionRisk;
+    reasons.push(
+      `Official CPCB Air Quality: Matched to ${route.cpcbStation.name} (${route.cpcbStation.distanceToRouteKm} km from route). Grounded AQI: ${route.cpcbAqi} (${route.cpcbCategory}, ${route.cpcbStation.prominentPollutant || 'PM2.5'}). Clean Air Index: ${cleanAirScore}/100.`
+    );
   } else {
-    reasons.push(`Low vegetation coverage (${route.greeneryScore}%), exposed to direct urban sun.`);
-  }
-
-  // Air quality & pollution justification
-  const cleanAirScore = 100 - route.trafficPollutionRisk;
-  if (cleanAirScore >= 80) {
-    reasons.push(`Low vehicular exposure (Clean Air Index: ${cleanAirScore}/100) minimizes toxic fine particulate (PM2.5) inhalation.`);
-  } else if (cleanAirScore >= 50) {
-    reasons.push(`Moderate vehicular presence along parallel transit lane.`);
-  } else {
-    reasons.push(`High traffic emission corridor (Risk: ${route.trafficPollutionRisk}/100); elevated exhaust fumes.`);
-  }
-
-  // Safety & Infrastructure
-  if (route.safetyScore >= 88) {
-    reasons.push(`High pedestrian safety score (${route.safetyScore}/100) with continuous sidewalks and protected crosswalks.`);
-  } else {
-    reasons.push(`Reduced pedestrian buffer (${route.safetyScore}/100 safety score) near vehicular traffic.`);
+    const cleanAirScore = 100 - route.trafficPollutionRisk;
+    reasons.push(`Clean Air Index: ${cleanAirScore}/100 based on urban vehicular emission modeling.`);
   }
 
   // Road condition & active hazard alerts
   if (route.hazardData.reportCount === 0) {
-    reasons.push(`Zero active road hazards or potholes reported by the community on this pathway.`);
+    reasons.push(`Zero active road hazards or potholes reported by community walkers on this pathway.`);
   } else {
-    reasons.push(`Caution: ${route.hazardData.reportCount} active hazard/pothole report(s) flagged on this segment (-${route.hazardData.penalty} score deduction).`);
+    reasons.push(
+      `Caution: ${route.hazardData.reportCount} active community hazard/pothole alert(s) detected near this path (-${route.hazardData.penalty} score penalty).`
+    );
+  }
+
+  // Greenery justification
+  if (route.greeneryScore >= 80) {
+    reasons.push(`High greenery and tree canopy shade (${route.greeneryScore}%) offering solar protection and thermal comfort.`);
+  } else if (route.greeneryScore >= 55) {
+    reasons.push(`Moderate urban vegetation and park borders (${route.greeneryScore}% greenery index).`);
+  } else {
+    reasons.push(`Exposed commercial sidewalk with limited foliage shade (${route.greeneryScore}% greenery).`);
+  }
+
+  // Safety & Infrastructure
+  if (route.safetyScore >= 85) {
+    reasons.push(`High pedestrian safety score (${route.safetyScore}/100) along designated walkways and separated footpaths.`);
+  } else {
+    reasons.push(`Reduced pedestrian buffer (${route.safetyScore}/100 safety score) along mixed vehicular lanes.`);
   }
 
   return reasons;
@@ -349,7 +364,8 @@ async function evaluateAndRecommendRealRoutes({
   startLabel = 'Current GPS Location',
   destinationLabel = 'Destination Landmark',
   userPreferences = {},
-  walkingSpeed = 'moderate'
+  walkingSpeed = 'moderate',
+  maxWalkingDistanceKm = 8.0
 }) {
   // 1. Fetch real walking routes from OpenRouteService / OSRM
   const routingResult = await routingService.getWalkingRoutes(startCoords, destinationCoords);
@@ -361,8 +377,8 @@ async function evaluateAndRecommendRealRoutes({
   const distances = features.map(f => (f.properties?.summary?.distance || 1000) / 1000);
   const minDistanceKm = Math.min(...distances);
 
-  // 2. Evaluate each real route candidate
-  const evaluatedRoutes = features.map((feature, index) => {
+  // 2. Evaluate each real route candidate asynchronously to match official CPCB stations
+  const evaluatedRoutes = await Promise.all(features.map(async (feature, index) => {
     // Coordinates conversion: GeoJSON [lng, lat] -> Leaflet [lat, lng]
     const rawCoords = feature.geometry?.coordinates || [];
     const waypoints = rawCoords.map(pt => [pt[1], pt[0]]);
@@ -372,8 +388,11 @@ async function evaluateAndRecommendRealRoutes({
     const distanceKm = Number(((summary.distance || 1000) / 1000).toFixed(2));
     const estimatedMinutes = Math.max(1, Math.round((distanceKm / speedKmph) * 60));
 
-    // Environmental metrics via spatial proximity and step semantics
-    const env = evaluateRouteEnvironment(waypoints, steps, index);
+    // Match route to official CPCB CAAQMS monitoring stations
+    const cpcbAssessment = await cpcbAqiService.matchRouteToCpcbStations(waypoints);
+
+    // Environmental metrics via spatial proximity, step semantics, and CPCB station
+    const env = evaluateRouteEnvironment(waypoints, steps, index, cpcbAssessment);
     
     // Dynamic hazard deduction based on real GPS proximity to active reports
     const hazardData = calculateGeoHazardPenalty(waypoints);
@@ -400,20 +419,18 @@ async function evaluateAndRecommendRealRoutes({
     const co2SavedGrams = Math.round(distanceKm * config.CO2_SAVED_PER_KM_GRAMS);
 
     // Air Quality rating tag
-    let airQualityTag = 'Good';
-    if (env.trafficPollutionRisk > 60) airQualityTag = 'Moderate Exhaust';
-    if (env.trafficPollutionRisk > 75) airQualityTag = 'Heavy Pollution';
+    let airQualityTag = `${cpcbAssessment.category} (AQI ${cpcbAssessment.routeAqi})`;
 
     // Route title & tags
     const routeTitles = [
       'Eco-Shaded Green Walking Corridor',
       'Direct Urban Street Route',
-      'Alternate Transit Avenue'
+      'Alternate Pedestrian Avenue'
     ];
     const name = `${startLabel} to ${destinationLabel} (${routeTitles[index] || `Option ${index + 1}`})`;
     const tag = index === 0 ? 'Primary Walking Route' : 'Alternative Walking Path';
 
-    return {
+    const routeObj = {
       id: `ROUTE-REAL-${index + 1}-${Date.now().toString(36)}`,
       name,
       tag,
@@ -434,22 +451,33 @@ async function evaluateAndRecommendRealRoutes({
       caloriesBurned,
       co2SavedGrams,
       airQualityTag,
+      // Official CPCB Data Fields
+      cpcbStation: cpcbAssessment.matchedStation,
+      cpcbAqi: cpcbAssessment.routeAqi,
+      cpcbCategory: cpcbAssessment.category,
+      cpcbDistanceKm: cpcbAssessment.distanceToStationKm,
+      cpcbLastUpdated: cpcbAssessment.matchedStation.lastUpdated,
+      cpcbDataSource: cpcbAssessment.dataSource,
+      cpcbHealthImpact: cpcbAssessment.healthImpact,
       waypoints,
       stepsCount: steps.length,
       terrainType: env.greeneryScore >= 80 ? 'Shaded Sidewalk & Pedestrian Verges' : 'Urban Paved Sidewalk',
-      description: `Actual walking route generated via real geographic routing network from ${startLabel} to ${destinationLabel}.`,
+      description: `Actual pedestrian route generated via real geographic walking network from ${startLabel} to ${destinationLabel}.`,
       highlights: [
+        `CPCB Station: ${cpcbAssessment.matchedStation.name} (AQI: ${cpcbAssessment.routeAqi}, ${cpcbAssessment.category})`,
         `${env.greeneryScore}% Estimated Greenery & Shade Index`,
         `${env.safetyScore}/100 Pedestrian Safety Score`,
         `Clean Air Index: ${cleanAirScore}/100`,
         `${hazardData.reportCount} Active community hazard alerts detected along path`
       ],
       warnings: hazardData.reportCount > 0 ? [`Caution: ${hazardData.reportCount} road hazard(s) flagged near this route.`] : [],
-      // Clearly disclose environmental data source as required
-      environmentalDataSource: 'Proximity to mapped green canopy buffers & OpenStreetMap pedestrian infrastructure classification. Direct real-time sensor IoT telemetry unavailable for this segment.',
+      environmentalDataSource: cpcbAssessment.disclosure,
+      healthDisclaimer: 'EcoWalk health scores are relative decision-support utility indices based on available environmental data and do not constitute individual medical guarantees or clinical safety certifications.',
       weightsUsed: weights
     };
-  });
+
+    return routeObj;
+  }));
 
   // Sort candidate routes by healthScore descending
   evaluatedRoutes.sort((a, b) => b.healthScore - a.healthScore);
@@ -477,7 +505,8 @@ async function evaluateAndRecommendRealRoutes({
     userPreferences,
     recommendedRoute: bestRoute,
     alternativeRoutes,
-    totalRoutesEvaluated: evaluatedRoutes.length
+    totalRoutesEvaluated: evaluatedRoutes.length,
+    healthDisclaimer: 'EcoWalk health scores are relative decision-support utility indices based on available environmental data and do not constitute individual medical guarantees or clinical safety certifications.'
   };
 }
 
@@ -643,9 +672,25 @@ function generateFallbackGraphCandidates(startId, endId) {
   return [route1, route2];
 }
 
+/**
+ * Standard MAUT Health Score computation helper
+ * HS = (wG * G + wS * S + wA * (100 - P) + wR * R) - Dp
+ */
+function calculateHealthScore({ greeneryScore, safetyScore, pollutionRisk, roadQualityScore, distancePenalty = 0, weights }) {
+  const wG = weights?.wG ?? 0.25;
+  const wS = weights?.wS ?? 0.25;
+  const wA = weights?.wA ?? 0.30;
+  const wR = weights?.wR ?? 0.20;
+
+  const cleanAir = Math.max(0, 100 - pollutionRisk);
+  const rawScore = (wG * greeneryScore) + (wS * safetyScore) + (wA * cleanAir) + (wR * roadQualityScore);
+  return Number(Math.max(0, Math.min(100, Math.round(rawScore - distancePenalty))).toFixed(1));
+}
+
 module.exports = {
   evaluateAndRecommendRoutes,
   evaluateAndRecommendRealRoutes,
+  calculateHealthScore,
   calculateHazardPenalty,
   calculateGeoHazardPenalty,
   deriveWeights,

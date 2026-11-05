@@ -239,6 +239,50 @@ export default function RouteCard({
           </div>
         </div>
 
+        {/* Official CPCB Air Quality Monitoring Block */}
+        {route.cpcbStation && (
+          <div style={{
+            background: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px 16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800', color: '#065F46', fontSize: '0.82rem' }}>
+                <Wind size={15} color="#059669" />
+                <span>OFFICIAL CPCB AIR QUALITY READING</span>
+              </div>
+              <span className={`badge ${route.cpcbAqi <= 50 ? 'badge-emerald' : route.cpcbAqi <= 100 ? 'badge-emerald' : route.cpcbAqi <= 200 ? 'badge-amber' : 'badge-rose'}`} style={{ fontSize: '0.74rem', fontWeight: '800' }}>
+                AQI {route.cpcbAqi} • {route.cpcbCategory}
+              </span>
+            </div>
+
+            <div style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: '700' }}>
+              Station: {route.cpcbStation.name}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginTop: '6px', fontSize: '0.74rem', color: '#475569' }}>
+              <div>
+                Locality: <strong>{route.cpcbStation.locality}</strong>
+              </div>
+              <div>
+                Distance to Route: <strong>{route.cpcbDistanceKm || route.cpcbStation.distanceToRouteKm || 0} km</strong>
+              </div>
+              <div>
+                Primary Pollutant: <strong>{route.cpcbStation.prominentPollutant || 'PM2.5'}</strong>
+              </div>
+              <div>
+                Bulletin Updated: <strong>{route.cpcbLastUpdated ? new Date(route.cpcbLastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Recent Bulletin'}</strong>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.7rem', color: '#047857', marginTop: '6px', fontStyle: 'italic', borderTop: '1px solid #DCFCE7', paddingTop: '4px' }}>
+              Source: Central Pollution Control Board (CPCB) CAAQMS Portal &bull; Route-level Clean Air Index: {Math.max(0, 100 - route.trafficPollutionRisk)}/100
+            </div>
+          </div>
+        )}
+
         {/* Hazard Warning Box if Hazards Exist */}
         {route.hazardData && route.hazardData.reportCount > 0 && (
           <div style={{
@@ -302,13 +346,26 @@ export default function RouteCard({
             border: '1px solid var(--slate-200)',
             borderRadius: 'var(--radius-sm)',
             padding: '6px 10px',
-            marginBottom: '14px',
+            marginBottom: '10px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}>
             <Info size={13} style={{ flexShrink: 0, color: 'var(--slate-400)' }} />
             <span><strong>Environmental Data:</strong> {route.environmentalDataSource}</span>
+          </div>
+        )}
+
+        {/* Health Disclaimer */}
+        {route.healthDisclaimer && (
+          <div style={{
+            fontSize: '0.68rem',
+            color: 'var(--slate-400)',
+            marginBottom: '14px',
+            fontStyle: 'italic',
+            lineHeight: '1.4'
+          }}>
+            ⚖️ {route.healthDisclaimer}
           </div>
         )}
 

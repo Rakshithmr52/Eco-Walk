@@ -66,12 +66,8 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
 
   const handleQuickRouteSubmit = (e) => {
     e.preventDefault();
-    if (quickStart === quickEnd) {
-      alert('Start and destination landmarks cannot be the same.');
-      return;
-    }
     if (onQuickPlan) {
-      onQuickPlan(quickStart, quickEnd);
+      onQuickPlan('', '');
     }
     setActiveTab('planner');
   };
@@ -566,46 +562,54 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
               </div>
               <div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
-                  Plan Your Bengaluru Walking Route
+                  Plan Healthy Walking Route
                 </h2>
                 <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>
-                  Select start and destination landmarks for health-optimized corridors
+                  Live GPS detection, open destination selection, official CPCB AQI & road hazard avoidance
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleQuickRouteSubmit}>
-              <div className="quick-search-grid">
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem' }}>Starting Point (A)</label>
-                  <select
-                    className="form-select"
-                    value={quickStart}
-                    onChange={(e) => setQuickStart(e.target.value)}
-                    style={{ borderRadius: '10px' }}
-                  >
-                    {locations.map(loc => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.shortName || loc.name}
-                      </option>
-                    ))}
-                  </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                <div style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  <div>
+                    <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#065F46', fontWeight: '700' }}>
+                      Starting Origin (Point A)
+                    </div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0F172A' }}>
+                      Current GPS Location (Automatic)
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem' }}>Destination (B)</label>
-                  <select
-                    className="form-select"
-                    value={quickEnd}
-                    onChange={(e) => setQuickEnd(e.target.value)}
-                    style={{ borderRadius: '10px' }}
-                  >
-                    {locations.map(loc => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.shortName || loc.name}
-                      </option>
-                    ))}
-                  </select>
+                <div style={{
+                  background: '#F0F9FF',
+                  border: '1px solid #BAE6FD',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0284C7' }} />
+                  <div>
+                    <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', color: '#0369A1', fontWeight: '700' }}>
+                      Destination (Point B)
+                    </div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0F172A' }}>
+                      Completely Open &bull; Search Any Address or Click Map
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -623,7 +627,7 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
               }}>
                 <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
                 <span>
-                  Evaluates tree canopy shade, pedestrian safety, air quality, and active road hazard penalties.
+                  Evaluates official CPCB AQI readings, tree canopy shade, pedestrian safety, and active community hazards.
                 </span>
               </div>
 
@@ -639,8 +643,8 @@ export default function HomeDashboard({ setActiveTab, onQuickPlan }) {
                   backgroundColor: '#059669'
                 }}
               >
-                Explore Recommended Routes
-                <ArrowRight size={18} />
+                <Compass size={18} />
+                Open Route Finder (Live GPS & Open Destination)
               </button>
             </form>
           </div>

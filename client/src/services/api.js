@@ -74,7 +74,11 @@ export const api = {
       const res = await fetch(`${API_BASE}/routes/locations`);
       return handleResponse(res);
     },
-    searchDestinations: async (query, lat, lon, radius = 5.0) => {
+    getCpcbStations: async () => {
+      const res = await fetch(`${API_BASE}/routes/cpcb-stations`);
+      return handleResponse(res);
+    },
+    searchDestinations: async (query, lat, lon, radius = 8.0) => {
       const params = new URLSearchParams({ query });
       if (lat) params.append('lat', lat);
       if (lon) params.append('lon', lon);

@@ -100,6 +100,32 @@ const createHazardIcon = (severity) => {
   });
 };
 
+const createCpcbStationIcon = (aqi, category) => {
+  let badgeColor = '#10B981';
+  if (aqi > 50 && aqi <= 100) badgeColor = '#059669';
+  if (aqi > 100 && aqi <= 200) badgeColor = '#F59E0B';
+  if (aqi > 200) badgeColor = '#EF4444';
+
+  return L.divIcon({
+    className: 'leaflet-custom-div-icon',
+    html: `
+      <div class="cpcb-station-marker" style="--cpcb-color: ${badgeColor}; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;">
+        <div style="background-color: ${badgeColor}; color: #ffffff; padding: 3px 7px; border-radius: 9999px; font-weight: 800; font-size: 11px; display: flex; align-items: center; gap: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.28); border: 2px solid #ffffff; white-space: nowrap;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path>
+            <path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path>
+            <path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path>
+          </svg>
+          <span>CPCB ${aqi}</span>
+        </div>
+      </div>
+    `,
+    iconSize: [64, 24],
+    iconAnchor: [32, 12],
+    popupAnchor: [0, -14]
+  });
+};
+
 const createLandmarkIcon = (shortName) => L.divIcon({
   className: 'leaflet-custom-div-icon',
   html: `
@@ -197,7 +223,9 @@ export default function MapVisualizer({
   selectedRoute = null,
   alternativeRoutes = [],
   activeHazardReports = [],
+  cpcbStations = [],
   locations = [],
+  walkingRadiusKm = 8.0,
   onSelectRoute = null,
   onMapClick = null,
   onSelectLocation = null,
@@ -206,6 +234,7 @@ export default function MapVisualizer({
   height = '540px'
 }) {
   const [showHazards, setShowHazards] = useState(true);
+  const [showCpcbStations, setShowCpcbStations] = useState(true);
   const [showLandmarks, setShowLandmarks] = useState(false);
   const [showAccuracyCircle, setShowAccuracyCircle] = useState(true);
   const [showRadiusCircle, setShowRadiusCircle] = useState(true);
@@ -342,6 +371,15 @@ export default function MapVisualizer({
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
           <input
             type="checkbox"
+            checked={showCpcbStations}
+            onChange={(e) => setShowCpcbStations(e.target.checked)}
+          />
+          <span style={{ color: '#059669', fontWeight: '700' }}>CPCB AQI Stations ({cpcbStations.length || 11})</span>
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
             checked={showLandmarks}
             onChange={(e) => setShowLandmarks(e.target.checked)}
           />
@@ -354,7 +392,7 @@ export default function MapVisualizer({
             checked={showRadiusCircle}
             onChange={(e) => setShowRadiusCircle(e.target.checked)}
           />
-          <span style={{ color: '#0284C7', fontWeight: '700' }}>5 km Walk Radius</span>
+          <span style={{ color: '#0284C7', fontWeight: '700' }}>{walkingRadiusKm} km Walk Radius</span>
         </label>
 
         {currentLocation && currentLocation.accuracy && (
@@ -453,14 +491,14 @@ export default function MapVisualizer({
           </Marker>
         )}
 
-        {/* 5 km Walking Radius Boundary Circle around Active Origin */}
+        {/* Walking Radius Boundary Circle around Active Origin (Default: 7-8 km) */}
         {showRadiusCircle && (currentLocation || manualStartLocation) && (
           <Circle
             center={[
               (currentLocation || manualStartLocation).lat,
               (currentLocation || manualStartLocation).lng
             ]}
-            radius={5000}
+            radius={(walkingRadiusKm || 8.0) * 1000}
             pathOptions={{
               color: '#0284C7',
               fillColor: '#38BDF8',
@@ -472,10 +510,10 @@ export default function MapVisualizer({
             <Popup>
               <div style={{ padding: '4px' }}>
                 <div style={{ fontWeight: '800', color: '#0284C7', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Navigation size={14} /> 5 km Walking Radius Zone
+                  <Navigation size={14} /> {walkingRadiusKm || 8.0} km Walking Radius Zone
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginTop: '4px', lineHeight: '1.4' }}>
-                  Pedestrian destination limit. Destinations selected via search, landmark dropdown, or map click must be located within this 5 km zone.
+                  Healthy pedestrian destination limit. Destinations selected via open search or map click must be located within this {walkingRadiusKm || 8.0} km walking range.
                 </div>
               </div>
             </Popup>
@@ -700,6 +738,60 @@ export default function MapVisualizer({
           );
         })}
 
+        {/* Official CPCB Ambient Air Quality Monitoring Stations */}
+        {showCpcbStations && cpcbStations.map(station => {
+          if (!station.lat || !station.lng) return null;
+          return (
+            <Marker
+              key={station.id || station.stationName}
+              position={[station.lat, station.lng]}
+              icon={createCpcbStationIcon(station.aqi, station.category)}
+            >
+              <Popup>
+                <div style={{ padding: '4px', maxWidth: '260px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.68rem', fontWeight: '800' }}>
+                      Official CPCB Station
+                    </span>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: '800',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      backgroundColor: station.category === 'Good' ? '#D1FAE5' : station.category === 'Satisfactory' ? '#ECFDF5' : '#FEF3C7',
+                      color: station.category === 'Good' || station.category === 'Satisfactory' ? '#065F46' : '#B45309'
+                    }}>
+                      AQI {station.aqi} • {station.category}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: '800', color: 'var(--slate-900)' }}>
+                    {station.stationName}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginTop: '2px' }}>
+                    Locality: <strong>{station.locality}</strong> ({station.zoneType})
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#0284C7', marginTop: '4px', fontWeight: '600' }}>
+                    Prominent Pollutant: {station.prominentPollutant || 'PM2.5'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--slate-400)', marginTop: '4px' }}>
+                    Updated: {new Date(station.lastUpdated).toLocaleDateString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--slate-100)', fontSize: '0.7rem' }}>
+                    <a
+                      href={station.portalUrl || 'https://airquality.cpcb.gov.in/AQI_India/'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#059669', fontWeight: '700', textDecoration: 'none' }}
+                    >
+                      View on CPCB National Portal &rarr;
+                    </a>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
         {/* Optional Civic Landmarks */}
         {showLandmarks && locations.map(loc => {
           if (!loc.lat || !loc.lng) return null;
@@ -757,6 +849,10 @@ export default function MapVisualizer({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={{ width: '16px', height: '3px', borderTop: '3px dashed #64748B' }} />
           <span>Alternative Route</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#059669', border: '1px solid #10B981' }} />
+          <span>CPCB Station</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#EF4444' }} />

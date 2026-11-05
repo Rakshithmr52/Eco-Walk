@@ -4,6 +4,7 @@ const routeController = require('../controllers/routeController');
 const { optionalAuth } = require('../middleware/auth');
 
 router.get('/locations', routeController.getLocations);
+router.get('/cpcb-stations', routeController.getCpcbStations);
 router.get('/search-destination', routeController.searchDestinations);
 router.get('/reverse-geocode', routeController.reverseGeocode);
 router.get('/', routeController.getAllRoutes);
