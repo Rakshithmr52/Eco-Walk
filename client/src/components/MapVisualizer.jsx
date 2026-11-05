@@ -257,6 +257,15 @@ export default function MapVisualizer({
         if (Array.isArray(pt) && pt.length >= 2) latLngs.push(pt);
       });
     }
+    if (Array.isArray(alternativeRoutes) && alternativeRoutes.length > 0) {
+      alternativeRoutes.forEach(alt => {
+        if (alt && Array.isArray(alt.waypoints)) {
+          alt.waypoints.forEach(pt => {
+            if (Array.isArray(pt) && pt.length >= 2) latLngs.push(pt);
+          });
+        }
+      });
+    }
 
     if (latLngs.length === 0) return null;
     if (latLngs.length === 1) {
@@ -500,52 +509,65 @@ export default function MapVisualizer({
           </Marker>
         )}
 
-        {/* Alternative Route Polylines (Dashed clickable lines) */}
+        {/* Alternative Route Polylines (Vibrant Azure Blue with Blue Halo) */}
         {alternativeRoutes.map((altRoute, idx) => {
           if (selectedRoute && selectedRoute.id === altRoute.id) return null;
           if (!altRoute.waypoints || altRoute.waypoints.length === 0) return null;
 
           return (
-            <Polyline
-              key={altRoute.id || idx}
-              positions={altRoute.waypoints}
-              pathOptions={{
-                color: '#64748B',
-                weight: 5,
-                dashArray: '6, 8',
-                opacity: 0.85,
-                lineCap: 'round',
-                lineJoin: 'round'
-              }}
-              eventHandlers={{
-                click: () => onSelectRoute && onSelectRoute(altRoute)
-              }}
-            >
-              <Popup>
-                <div style={{ padding: '4px' }}>
-                  <div style={{ fontWeight: '800', color: 'var(--slate-900)' }}>
-                    {altRoute.name}
+            <React.Fragment key={altRoute.id || idx}>
+              {/* Soft Azure Blue Halo */}
+              <Polyline
+                positions={altRoute.waypoints}
+                pathOptions={{
+                  color: '#BAE6FD',
+                  weight: 10,
+                  opacity: 0.65,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+              />
+              {/* Interactive Sky Blue Walking Route Line */}
+              <Polyline
+                positions={altRoute.waypoints}
+                pathOptions={{
+                  color: '#0284C7',
+                  weight: 5.5,
+                  opacity: 0.95,
+                  dashArray: '8, 8',
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+                eventHandlers={{
+                  click: () => onSelectRoute && onSelectRoute(altRoute)
+                }}
+              >
+                <Popup>
+                  <div style={{ padding: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0369A1', fontWeight: '800' }}>
+                      <Compass size={15} /> {altRoute.isRecommended ? '⭐ Route 1 (Recommended Best Match)' : '🚶 Route 2 (Alternative Path)'}
+                    </div>
+                    <div style={{ fontWeight: '800', color: 'var(--slate-900)', marginTop: '4px' }}>
+                      {altRoute.name}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--slate-600)', marginTop: '4px' }}>
+                      Distance: <strong>{altRoute.distanceKm} km</strong> &bull; Walk Time: <strong>{altRoute.estimatedMinutes} mins</strong>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#0369A1', marginTop: '2px', fontWeight: '700' }}>
+                      Health Score: {altRoute.healthScore} / 100
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSelectRoute && onSelectRoute(altRoute)}
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '8px', width: '100%', fontSize: '0.78rem', padding: '5px 10px' }}
+                    >
+                      Inspect this Route
+                    </button>
                   </div>
-                  <span className="badge badge-slate" style={{ margin: '4px 0', fontSize: '0.7rem' }}>
-                    {altRoute.recommendationBadge || 'Alternative Path'}
-                  </span>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--slate-600)', marginTop: '4px' }}>
-                    Distance: <strong>{altRoute.distanceKm} km</strong> | Time: <strong>{altRoute.estimatedMinutes} mins</strong>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--slate-700)', marginTop: '2px' }}>
-                    Health Score: <strong>{altRoute.healthScore}/100</strong>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onSelectRoute && onSelectRoute(altRoute)}
-                    className="btn btn-primary btn-sm"
-                    style={{ marginTop: '8px', width: '100%', fontSize: '0.75rem', padding: '4px 8px' }}
-                  >
-                    Select this Alternative
-                  </button>
-                </div>
-              </Popup>
-            </Polyline>
+                </Popup>
+              </Polyline>
+            </React.Fragment>
           );
         })}
 

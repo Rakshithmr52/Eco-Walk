@@ -126,11 +126,10 @@ async function runGpsRoutingTests() {
 
   test('Alternative walking routes are returned and marked isRecommended=false', () => {
     assert.ok(Array.isArray(realRouteRes.data.alternativeRoutes), 'Alternative routes is an array');
-    if (realRouteRes.data.alternativeRoutes.length > 0) {
-      const alt = realRouteRes.data.alternativeRoutes[0];
-      assert.strictEqual(alt.isRecommended, false);
-      assert.ok(alt.healthScore <= rec.healthScore, 'Recommended route has highest health score');
-    }
+    assert.ok(realRouteRes.data.alternativeRoutes.length >= 1, 'At least 1 alternative route is returned (minimum 2 routes evaluated)');
+    const alt = realRouteRes.data.alternativeRoutes[0];
+    assert.strictEqual(alt.isRecommended, false);
+    assert.ok(alt.healthScore <= rec.healthScore, 'Recommended route has highest health score (giving the best route)');
   });
 
   // 3. Error Handling and Edge Cases

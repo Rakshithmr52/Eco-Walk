@@ -79,9 +79,9 @@ export default function RouteComparisonTable({
                   <td style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {isRec ? (
-                        <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>Best Pick</span>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.7rem', fontWeight: '800' }}>★ Best Route</span>
                       ) : (
-                        <span className="badge badge-slate" style={{ fontSize: '0.7rem' }}>Alt {index}</span>
+                        <span className="badge badge-sky" style={{ fontSize: '0.7rem', fontWeight: '700' }}>Route {index + 1}</span>
                       )}
                       <span style={{ fontWeight: '700', color: 'var(--slate-900)' }}>
                         {r.name}

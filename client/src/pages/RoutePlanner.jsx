@@ -987,7 +987,12 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
             manualStartLocation={!useGpsOrigin ? getManualStartCoords() : null}
             destinationLocation={selectedDestination}
             selectedRoute={inspectedRoute}
-            alternativeRoutes={recommendationResult?.alternativeRoutes || []}
+            alternativeRoutes={
+              recommendationResult
+                ? [recommendationResult.recommendedRoute, ...(recommendationResult.alternativeRoutes || [])]
+                    .filter(r => r && r.id !== inspectedRoute?.id)
+                : []
+            }
             activeHazardReports={activeHazards}
             locations={locations}
             onSelectLocation={(loc) => {
@@ -1064,9 +1069,121 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
         </div>
       )}
 
+      {/* 2 Walking Routes Selection Banner */}
+      {recommendationResult && (
+        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-emerald" style={{ fontWeight: '800', fontSize: '0.8rem' }}>
+                <Compass size={14} /> 2 Walking Routes Evaluated
+              </span>
+              <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                Compare candidate routes below & select your preferred path:
+              </span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: '700' }}>
+              ★ Best Healthy Match Auto-Selected
+            </span>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '12px'
+          }}>
+            {[recommendationResult.recommendedRoute, ...(recommendationResult.alternativeRoutes || [])]
+              .filter(Boolean)
+              .map((route, idx) => {
+                const isSelected = inspectedRoute?.id === route.id;
+                const isBest = route.isRecommended;
+
+                return (
+                  <div
+                    key={route.id || idx}
+                    onClick={() => setInspectedRoute(route)}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      border: isSelected
+                        ? (isBest ? '2px solid #059669' : '2px solid #0284C7')
+                        : '1px solid #E2E8F0',
+                      backgroundColor: isSelected
+                        ? (isBest ? '#ECFDF5' : '#F0F9FF')
+                        : '#FFFFFF',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isSelected ? '0 4px 14px rgba(0, 0, 0, 0.08)' : '0 1px 3px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          backgroundColor: isBest ? '#059669' : '#0284C7'
+                        }} />
+                        <span style={{ fontWeight: '800', fontSize: '0.92rem', color: '#0F172A' }}>
+                          Route {idx + 1}
+                        </span>
+                      </div>
+                      {isBest ? (
+                        <span className="badge badge-emerald" style={{ fontSize: '0.72rem', fontWeight: '800' }}>
+                          ★ Best Health Match
+                        </span>
+                      ) : (
+                        <span className="badge badge-sky" style={{ fontSize: '0.72rem', fontWeight: '700' }}>
+                          Alternative Route
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: '0.84rem', color: '#1E293B', fontWeight: '700', marginBottom: '8px', lineHeight: '1.3' }}>
+                      {route.name}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', color: '#64748B', flexWrap: 'wrap' }}>
+                      <span>Health Score: <strong style={{ color: isBest ? '#059669' : '#0284C7', fontSize: '0.9rem' }}>{route.healthScore}/100</strong></span>
+                      <span>&bull;</span>
+                      <span>{route.distanceKm} km</span>
+                      <span>&bull;</span>
+                      <span>~{route.estimatedMinutes} mins</span>
+                    </div>
+
+                    <div style={{
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px dashed #E2E8F0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.74rem'
+                    }}>
+                      <span style={{ color: isSelected ? (isBest ? '#047857' : '#0369A1') : '#64748B', fontWeight: '700' }}>
+                        {isSelected ? '✓ Showing on Map' : 'Click to inspect on map'}
+                      </span>
+                      <span style={{ color: '#059669', fontWeight: '600' }}>
+                        {route.greeneryScore}% Greenery
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Recommended Route Card (Hero Feature) */}
       {inspectedRoute && (
-        <div style={{ marginBottom: '24px', marginTop: '24px' }}>
+        <div style={{ marginBottom: '24px', marginTop: '12px' }}>
           <RouteCard
             route={inspectedRoute}
             isRecommended={inspectedRoute.isRecommended}

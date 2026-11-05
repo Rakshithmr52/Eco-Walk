@@ -42,8 +42,8 @@ export default function RouteCard({
       overflow: 'hidden',
       backgroundColor: '#ffffff'
     }}>
-      {/* Top Banner for Best Match */}
-      {isRecommended && (
+      {/* Top Banner */}
+      {isRecommended ? (
         <div style={{
           position: 'absolute',
           top: 0,
@@ -60,11 +60,30 @@ export default function RouteCard({
           letterSpacing: '0.3px'
         }}>
           <Sparkles size={14} />
-          RECOMMENDED HEALTHY ROUTE • OPTIMAL COMPOSITE SCORE
+          RECOMMENDED HEALTHY ROUTE (ROUTE 1) • OPTIMAL COMPOSITE SCORE
+        </div>
+      ) : (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(90deg, #0284C7 0%, #38BDF8 100%)',
+          color: '#ffffff',
+          padding: '4px 16px',
+          fontSize: '0.75rem',
+          fontWeight: '700',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          letterSpacing: '0.3px'
+        }}>
+          <Compass size={14} />
+          ALTERNATIVE WALKING ROUTE (ROUTE 2) • SECONDARY PATHWAY
         </div>
       )}
 
-      <div style={{ paddingTop: isRecommended ? '14px' : '0' }}>
+      <div style={{ paddingTop: '16px' }}>
         {/* Header with Title and Health Score Dial */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginTop: '8px' }}>
           <div>
