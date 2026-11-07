@@ -1,5 +1,66 @@
 [
   {
+    "id": "rep_1794035938758",
+    "userId": "usr_1794035936311",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-07T07:18:58.758Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-07T07:18:58.763Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
+    "id": "REP-02693F",
+    "routeId": "R-COMMUNITY",
+    "routeName": "Cubbon Road Pedestrian Curb",
+    "locationName": "Cubbon Road Pedestrian Curb",
+    "title": "Cubbon Road Pedestrian Curb",
+    "coordinates": [
+      13.02726,
+      77.65726
+    ],
+    "lat": 13.02726,
+    "lng": 77.65726,
+    "location": {
+      "address": "Cubbon Road Pedestrian Curb"
+    },
+    "issueType": "pothole",
+    "type": "pothole",
+    "severity": "high",
+    "status": "resolved",
+    "description": "Deep crack in granite sidewalk edge causing pedestrian tripping.",
+    "imageUrl": "",
+    "reportedBy": "Rahul",
+    "userName": "Rahul",
+    "userEmail": "walker@ecowalk.local",
+    "confirmations": 1,
+    "confirmedBy": [
+      "walker@ecowalk.local"
+    ],
+    "lastConfirmedAt": "2026-11-07T07:18:47.732Z",
+    "createdAt": "2026-11-07T07:18:47.732Z",
+    "verifiedAt": "2026-11-07T07:18:47.744Z",
+    "resolvedAt": "2026-11-07T07:18:48.205Z",
+    "rejectedAt": null,
+    "adminNotes": "Asphalt patched."
+  },
+  {
     "id": "REP-101",
     "routeId": "ROUTE-REAL-L4",
     "routeName": "IISc Campus Green Corridor",

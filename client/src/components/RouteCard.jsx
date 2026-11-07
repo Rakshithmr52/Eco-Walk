@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Trees, 
   ShieldCheck, 
@@ -11,9 +11,13 @@ import {
   AlertTriangle,
   Award,
   Sparkles,
+  Compass,
   MessageSquarePlus,
   Send,
-  Info
+  Info,
+  BookOpen,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export default function RouteCard({
@@ -21,8 +25,11 @@ export default function RouteCard({
   onOpenFeedback = null,
   onOpenReport = null,
   onLogWalk = null,
+  onInspect = null,
   isRecommended = true
 }) {
+  const [showAcademicDetails, setShowAcademicDetails] = useState(false);
+
   if (!route) return null;
 
   const score = route.healthScore || 85;
@@ -34,6 +41,10 @@ export default function RouteCard({
   let scoreColor = '#10B981';
   if (score < 60) scoreColor = '#F59E0B';
   if (score < 40) scoreColor = '#EF4444';
+
+  const cleanAir = route.cleanAirScore !== undefined ? route.cleanAirScore : Math.max(0, 100 - (route.trafficPollutionRisk || 35));
+  const roadQuality = route.roadQualityScore !== undefined ? route.roadQualityScore : (route.effectiveRoadCondition || route.roadConditionScore || 85);
+  const maut = route.mautBreakdown;
 
   return (
     <div className="card" style={{
@@ -188,14 +199,14 @@ export default function RouteCard({
           </div>
         </div>
 
-        {/* Health Attribute Breakdown Bars */}
+        {/* Health Attribute Breakdown Bars (Exact 4 Core Sub-Scores) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Trees size={14} color="#059669" /> Greenery Canopy
+                <Trees size={14} color="#059669" /> Greenery Score
               </span>
-              <span style={{ color: 'var(--primary-700)' }}>{route.greeneryScore}%</span>
+              <span style={{ color: 'var(--primary-700)', fontWeight: '800' }}>{route.greeneryScore} / 100</span>
             </div>
             <div style={{ height: '6px', background: 'var(--slate-200)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ width: `${route.greeneryScore}%`, height: '100%', background: '#10B981', borderRadius: '3px' }} />
@@ -207,7 +218,7 @@ export default function RouteCard({
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <ShieldCheck size={14} color="#0284C7" /> Pedestrian Safety
               </span>
-              <span style={{ color: '#0284C7' }}>{route.safetyScore}%</span>
+              <span style={{ color: '#0284C7', fontWeight: '800' }}>{route.safetyScore} / 100</span>
             </div>
             <div style={{ height: '6px', background: 'var(--slate-200)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ width: `${route.safetyScore}%`, height: '100%', background: '#0284C7', borderRadius: '3px' }} />
@@ -217,12 +228,12 @@ export default function RouteCard({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Wind size={14} color="#0D9488" /> Clean Air Index
+                <Wind size={14} color="#0D9488" /> Clean Air Score
               </span>
-              <span style={{ color: '#0D9488' }}>{Math.max(0, 100 - route.trafficPollutionRisk)}%</span>
+              <span style={{ color: '#0D9488', fontWeight: '800' }}>{cleanAir} / 100</span>
             </div>
             <div style={{ height: '6px', background: 'var(--slate-200)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.max(0, 100 - route.trafficPollutionRisk)}%`, height: '100%', background: '#0D9488', borderRadius: '3px' }} />
+              <div style={{ width: `${cleanAir}%`, height: '100%', background: '#0D9488', borderRadius: '3px' }} />
             </div>
           </div>
 
@@ -231,10 +242,10 @@ export default function RouteCard({
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Activity size={14} color="#8B5CF6" /> Road Quality
               </span>
-              <span style={{ color: '#8B5CF6' }}>{route.effectiveRoadCondition || route.roadConditionScore}%</span>
+              <span style={{ color: '#8B5CF6', fontWeight: '800' }}>{roadQuality} / 100</span>
             </div>
             <div style={{ height: '6px', background: 'var(--slate-200)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${route.effectiveRoadCondition || route.roadConditionScore}%`, height: '100%', background: '#8B5CF6', borderRadius: '3px' }} />
+              <div style={{ width: `${roadQuality}%`, height: '100%', background: '#8B5CF6', borderRadius: '3px' }} />
             </div>
           </div>
         </div>
@@ -251,7 +262,7 @@ export default function RouteCard({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800', color: '#065F46', fontSize: '0.82rem' }}>
                 <Wind size={15} color="#059669" />
-                <span>OFFICIAL CPCB AIR QUALITY READING</span>
+                <span>OFFICIAL CPCB AIR QUALITY MONITORING STATION</span>
               </div>
               <span className={`badge ${route.cpcbAqi <= 50 ? 'badge-emerald' : route.cpcbAqi <= 100 ? 'badge-emerald' : route.cpcbAqi <= 200 ? 'badge-amber' : 'badge-rose'}`} style={{ fontSize: '0.74rem', fontWeight: '800' }}>
                 AQI {route.cpcbAqi} • {route.cpcbCategory}
@@ -278,7 +289,7 @@ export default function RouteCard({
             </div>
 
             <div style={{ fontSize: '0.7rem', color: '#047857', marginTop: '6px', fontStyle: 'italic', borderTop: '1px solid #DCFCE7', paddingTop: '4px' }}>
-              Source: Central Pollution Control Board (CPCB) CAAQMS Portal &bull; Route-level Clean Air Index: {Math.max(0, 100 - route.trafficPollutionRisk)}/100
+              Source: Central Pollution Control Board (CPCB) CAAQMS Portal &bull; Clean Air Score = clamp(100 - AQI / 5, 0, 100) = <strong>{cleanAir} / 100</strong>
             </div>
           </div>
         )}
@@ -299,10 +310,69 @@ export default function RouteCard({
           }}>
             <AlertTriangle size={16} color="#DC2626" flexShrink={0} />
             <span>
-              <strong>Active Road Hazards:</strong> {route.hazardData.reportCount} community report(s) flagged on this route. Health score penalized by -{route.hazardData.penalty} pts.
+              <strong>Active Road Hazards:</strong> {route.hazardData.reportCount} community report(s) flagged on this route. Road Quality penalized by -{route.hazardData.penalty} pts.
             </span>
           </div>
         )}
+
+        {/* Expandable Guide Demonstration Section: How EcoWalk Evaluates This Route */}
+        <div style={{
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 14px',
+          marginBottom: '16px'
+        }}>
+          <button
+            type="button"
+            onClick={() => setShowAcademicDetails(!showAcademicDetails)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: '#0F172A',
+              fontWeight: '800',
+              fontSize: '0.82rem'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BookOpen size={16} color="#059669" />
+              How EcoWalk Evaluates This Route
+            </span>
+            {showAcademicDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showAcademicDetails && (
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #E2E8F0', fontSize: '0.78rem', color: '#334155' }}>
+              <div style={{ fontFamily: 'monospace', backgroundColor: '#FFFFFF', padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', marginBottom: '8px' }}>
+                HealthScore = (wG &times; G + wS &times; S + wA &times; C + wR &times; R) - DistancePenalty
+              </div>
+              <ul style={{ paddingLeft: '18px', margin: 0, lineHeight: '1.5' }}>
+                <li><strong>Greenery (G = {route.greeneryScore}/100):</strong> OpenStreetMap 150m spatial proximity buffer analysis.</li>
+                <li><strong>Safety (S = {route.safetyScore}/100):</strong> OSM pedestrian footways, sidewalks &amp; separation from arterial traffic.</li>
+                <li><strong>Clean Air (C = {cleanAir}/100):</strong> Official CPCB CAAQMS reading: clamp(100 - AQI / 5, 0, 100).</li>
+                <li><strong>Road Quality (R = {roadQuality}/100):</strong> OSM surface + active community hazard deduction.</li>
+              </ul>
+              {onInspect && (
+                <div style={{ marginTop: '8px', textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    onClick={() => onInspect(route)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.74rem', padding: '4px 10px' }}
+                  >
+                    Open Full Route Audit Modal &rarr;
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Recommendation Reasons Section */}
         {route.recommendationReasons && route.recommendationReasons.length > 0 && (
@@ -337,25 +407,6 @@ export default function RouteCard({
           </div>
         )}
 
-        {/* Environmental Data Source Transparency Notice */}
-        {route.environmentalDataSource && (
-          <div style={{
-            fontSize: '0.72rem',
-            color: 'var(--slate-500)',
-            background: 'var(--slate-50)',
-            border: '1px solid var(--slate-200)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '6px 10px',
-            marginBottom: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Info size={13} style={{ flexShrink: 0, color: 'var(--slate-400)' }} />
-            <span><strong>Environmental Data:</strong> {route.environmentalDataSource}</span>
-          </div>
-        )}
-
         {/* Health Disclaimer */}
         {route.healthDisclaimer && (
           <div style={{
@@ -374,11 +425,22 @@ export default function RouteCard({
           <button
             onClick={() => onLogWalk && onLogWalk(route)}
             className="btn btn-primary btn-sm"
-            style={{ flex: 1 }}
+            style={{ flex: 1, minWidth: '130px' }}
           >
             <CheckCircle2 size={16} />
             Walk This Route
           </button>
+
+          {onInspect && (
+            <button
+              onClick={() => onInspect(route)}
+              className="btn btn-secondary btn-sm"
+              title="Inspect Full Multi-Criteria Health Score Formulas"
+            >
+              <Info size={16} color="#0284C7" />
+              Inspect Math
+            </button>
+          )}
 
           <button
             onClick={() => onOpenFeedback && onOpenFeedback(route)}

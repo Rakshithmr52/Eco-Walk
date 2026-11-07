@@ -170,11 +170,32 @@ function MapClickHandler({ onMapClick }) {
  */
 function MapControls({ onRecenterGps, hasGps, onOpenReportModal }) {
   const map = useMap();
+  const toolbarRef = useRef(null);
+
+  useEffect(() => {
+    if (toolbarRef.current) {
+      L.DomEvent.disableClickPropagation(toolbarRef.current);
+      L.DomEvent.disableScrollPropagation(toolbarRef.current);
+    }
+  }, []);
+
   return (
-    <div className="leaflet-floating-toolbar">
+    <div 
+      ref={toolbarRef} 
+      className="leaflet-floating-toolbar"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <button
         type="button"
-        onClick={() => map.zoomIn()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+          map.zoomIn();
+        }}
         className="btn btn-secondary btn-sm"
         title="Zoom In"
         style={{ padding: '6px 10px' }}
@@ -183,7 +204,11 @@ function MapControls({ onRecenterGps, hasGps, onOpenReportModal }) {
       </button>
       <button
         type="button"
-        onClick={() => map.zoomOut()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+          map.zoomOut();
+        }}
         className="btn btn-secondary btn-sm"
         title="Zoom Out"
         style={{ padding: '6px 10px' }}
@@ -193,7 +218,11 @@ function MapControls({ onRecenterGps, hasGps, onOpenReportModal }) {
       {hasGps && (
         <button
           type="button"
-          onClick={onRecenterGps}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+            if (onRecenterGps) onRecenterGps(e);
+          }}
           className="btn btn-primary btn-sm"
           title="Center on Current GPS Location"
           style={{ padding: '6px 10px' }}
@@ -204,7 +233,11 @@ function MapControls({ onRecenterGps, hasGps, onOpenReportModal }) {
       {onOpenReportModal && (
         <button
           type="button"
-          onClick={onOpenReportModal}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+            onOpenReportModal();
+          }}
           className="btn btn-secondary btn-sm"
           title="Pin Road Hazard at Location"
           style={{ padding: '6px 10px', color: '#DC2626', borderColor: '#FECACA' }}
@@ -304,16 +337,26 @@ export default function MapVisualizer({
     return L.latLngBounds(latLngs);
   }, [currentLocation, destinationLocation, manualStartLocation, selectedRoute]);
 
-  const handleRecenterGps = () => {
+  const handleRecenterGps = (e) => {
+    if (e) {
+      if (e.stopPropagation) e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) e.nativeEvent.stopImmediatePropagation();
+    }
     if (currentLocation && mapRef.current) {
-      mapRef.current.setView([currentLocation.lat, currentLocation.lng], 16, { animate: true });
+      mapRef.current.flyTo([currentLocation.lat, currentLocation.lng], 16, { animate: true });
     }
   };
 
   return (
     <div className="map-container" style={{ height, position: 'relative', width: '100%', overflow: 'hidden' }}>
       {/* Top Left: Active Status Indicator */}
-      <div style={{
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
         position: 'absolute',
         top: '16px',
         left: '16px',
@@ -341,7 +384,13 @@ export default function MapVisualizer({
       </div>
 
       {/* Top Right: Layer Visibility Toggles */}
-      <div style={{
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
         position: 'absolute',
         top: '16px',
         right: '16px',
@@ -439,6 +488,7 @@ export default function MapVisualizer({
               <Circle
                 center={[currentLocation.lat, currentLocation.lng]}
                 radius={currentLocation.accuracy}
+                interactive={false}
                 pathOptions={{
                   color: '#10B981',
                   fillColor: '#10B981',
@@ -451,6 +501,12 @@ export default function MapVisualizer({
             <Marker
               position={[currentLocation.lat, currentLocation.lng]}
               icon={createUserGpsIcon()}
+              zIndexOffset={900}
+              eventHandlers={{
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                }
+              }}
             >
               <Popup>
                 <div style={{ padding: '4px' }}>
@@ -477,6 +533,12 @@ export default function MapVisualizer({
           <Marker
             position={[manualStartLocation.lat, manualStartLocation.lng]}
             icon={createStartIcon()}
+            zIndexOffset={900}
+            eventHandlers={{
+              click: (e) => {
+                L.DomEvent.stopPropagation(e);
+              }
+            }}
           >
             <Popup>
               <div style={{ padding: '4px' }}>
@@ -499,6 +561,7 @@ export default function MapVisualizer({
               (currentLocation || manualStartLocation).lng
             ]}
             radius={(walkingRadiusKm || 8.0) * 1000}
+            interactive={false}
             pathOptions={{
               color: '#0284C7',
               fillColor: '#38BDF8',
@@ -506,18 +569,7 @@ export default function MapVisualizer({
               weight: 2,
               dashArray: '6, 6'
             }}
-          >
-            <Popup>
-              <div style={{ padding: '4px' }}>
-                <div style={{ fontWeight: '800', color: '#0284C7', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Navigation size={14} /> {walkingRadiusKm || 8.0} km Walking Radius Zone
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--slate-600)', marginTop: '4px', lineHeight: '1.4' }}>
-                  Healthy pedestrian destination limit. Destinations selected via open search or map click must be located within this {walkingRadiusKm || 8.0} km walking range.
-                </div>
-              </div>
-            </Popup>
-          </Circle>
+          />
         )}
 
         {/* Destination Marker */}
@@ -525,6 +577,12 @@ export default function MapVisualizer({
           <Marker
             position={[destinationLocation.lat, destinationLocation.lng]}
             icon={createDestinationIcon()}
+            zIndexOffset={1000}
+            eventHandlers={{
+              click: (e) => {
+                L.DomEvent.stopPropagation(e);
+              }
+            }}
           >
             <Popup>
               <div style={{ padding: '4px' }}>
@@ -680,6 +738,12 @@ export default function MapVisualizer({
               key={report.id}
               position={[rLat, rLng]}
               icon={createHazardIcon(report.severity)}
+              zIndexOffset={800}
+              eventHandlers={{
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                }
+              }}
             >
               <Popup>
                 <div style={{ padding: '4px', maxWidth: '250px' }}>
@@ -746,6 +810,12 @@ export default function MapVisualizer({
               key={station.id || station.stationName}
               position={[station.lat, station.lng]}
               icon={createCpcbStationIcon(station.aqi, station.category)}
+              zIndexOffset={850}
+              eventHandlers={{
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                }
+              }}
             >
               <Popup>
                 <div style={{ padding: '4px', maxWidth: '260px' }}>
@@ -800,8 +870,12 @@ export default function MapVisualizer({
               key={loc.id}
               position={[loc.lat, loc.lng]}
               icon={createLandmarkIcon(loc.shortName || loc.name)}
+              zIndexOffset={750}
               eventHandlers={{
-                click: () => onSelectLocation && onSelectLocation(loc)
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                  if (onSelectLocation) onSelectLocation(loc);
+                }
               }}
             >
               <Popup>

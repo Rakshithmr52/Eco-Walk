@@ -158,16 +158,34 @@ exports.recommendRoutes = async (req, res) => {
 
     let recommendation = null;
 
-    // 1. If real GPS coordinates are supplied
-    if (
-      startCoords && typeof startCoords.lat === 'number' && typeof startCoords.lng === 'number' &&
-      destinationCoords && typeof destinationCoords.lat === 'number' && typeof destinationCoords.lng === 'number'
-    ) {
+    // 1. If real GPS coordinates are supplied (as { lat, lng } or [lat, lng])
+    let sLat = null, sLng = null, dLat = null, dLng = null;
+    if (startCoords) {
+      if (typeof startCoords.lat === 'number' && typeof startCoords.lng === 'number') {
+        sLat = startCoords.lat;
+        sLng = startCoords.lng;
+      } else if (Array.isArray(startCoords) && startCoords.length >= 2) {
+        sLat = Number(startCoords[0]);
+        sLng = Number(startCoords[1]);
+      }
+    }
+    if (destinationCoords) {
+      if (typeof destinationCoords.lat === 'number' && typeof destinationCoords.lng === 'number') {
+        dLat = destinationCoords.lat;
+        dLng = destinationCoords.lng;
+      } else if (Array.isArray(destinationCoords) && destinationCoords.length >= 2) {
+        dLat = Number(destinationCoords[0]);
+        dLng = Number(destinationCoords[1]);
+      }
+    }
+
+    if (sLat !== null && !isNaN(sLat) && sLng !== null && !isNaN(sLng) &&
+        dLat !== null && !isNaN(dLat) && dLng !== null && !isNaN(dLng)) {
+      const cleanStart = { lat: sLat, lng: sLng };
+      const cleanDest = { lat: dLat, lng: dLng };
+
       // Check if start and destination are identical
-      const dist = routingService.haversineDistance(
-        startCoords.lat, startCoords.lng,
-        destinationCoords.lat, destinationCoords.lng
-      );
+      const dist = routingService.haversineDistance(sLat, sLng, dLat, dLng);
       if (dist < 0.02) { // less than 20 meters
         return res.status(400).json({ error: 'Start and destination locations are too close to generate a walking route.' });
       }
@@ -181,8 +199,8 @@ exports.recommendRoutes = async (req, res) => {
       }
 
       recommendation = await recommendationEngine.evaluateAndRecommendRealRoutes({
-        startCoords,
-        destinationCoords,
+        startCoords: cleanStart,
+        destinationCoords: cleanDest,
         startLabel: startLabel || 'Current GPS Location',
         destinationLabel: destinationLabel || 'Selected Destination',
         userPreferences: effectivePrefs,

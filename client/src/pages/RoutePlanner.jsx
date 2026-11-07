@@ -29,6 +29,7 @@ import RouteCard from '../components/RouteCard';
 import RouteComparisonTable from '../components/RouteComparisonTable';
 import FeedbackModal from '../components/FeedbackModal';
 import ReportHazardModal from '../components/ReportHazardModal';
+import RouteInspectionModal from '../components/RouteInspectionModal';
 
 const DEFAULT_WALKING_RADIUS_KM = 8.0;
 
@@ -92,12 +93,15 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
   // Modals state
   const [feedbackRoute, setFeedbackRoute] = useState(null);
   const [reportRoute, setReportRoute] = useState(null);
+  const [inspectionRoute, setInspectionRoute] = useState(null);
   const [isHazardModalOpen, setIsHazardModalOpen] = useState(false);
   const [hazardModalCoords, setHazardModalCoords] = useState(null);
 
   /**
    * Request GPS position using browser navigator.geolocation
    * Validates Bengaluru geographic bounds to ensure seamless demonstration
+   * Task 1: Updates ONLY starting point and GPS marker. Does NOT alter destination
+   * and does NOT trigger route calculation automatically.
    */
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -137,11 +141,6 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
           setGpsStatus('acquired');
           setUseGpsOrigin(true);
           setGpsError('Device GPS is outside Bengaluru. Origin set to Central Bengaluru (MG Road) so you can test routes freely.');
-        }
-
-        // If a destination is already set, calculate routes immediately
-        if (selectedDestination) {
-          triggerRouteCalculation(coords, selectedDestination);
         }
       },
       (geoError) => {
@@ -1331,6 +1330,7 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
             route={inspectedRoute}
             isRecommended={inspectedRoute.isRecommended}
             onLogWalk={handleLogWalk}
+            onInspect={(r) => setInspectionRoute(r)}
             onOpenFeedback={(r) => setFeedbackRoute(r)}
             onOpenReport={(r) => {
               setReportRoute(r);
@@ -1352,8 +1352,16 @@ export default function RoutePlanner({ initialStart = 'L1', initialEnd = '' }) {
           alternativeRoutes={recommendationResult.alternativeRoutes}
           selectedRouteId={inspectedRoute?.id}
           onSelectRoute={(r) => setInspectedRoute(r)}
+          onInspectRoute={(r) => setInspectionRoute(r)}
         />
       )}
+
+      {/* Academic Demonstration & Detailed Route Inspection Modal */}
+      <RouteInspectionModal
+        isOpen={Boolean(inspectionRoute)}
+        route={inspectionRoute}
+        onClose={() => setInspectionRoute(null)}
+      />
 
       {/* Modals for Feedback & Hazard Reporting */}
       <FeedbackModal

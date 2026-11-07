@@ -269,6 +269,23 @@ async function getAllCpcbStations() {
 }
 
 /**
+ * Convert CPCB AQI to EcoWalk Clean Air Score using MCA project formula:
+ * CleanAirScore = clamp(100 - AQI / 5, 0, 100)
+ * 
+ * Examples:
+ * AQI = 50 (Good) -> CleanAirScore = 100 - 10 = 90
+ * AQI = 100 (Satisfactory) -> CleanAirScore = 100 - 20 = 80
+ * AQI = 200 (Moderate) -> CleanAirScore = 100 - 40 = 60
+ * AQI = 300 (Poor) -> CleanAirScore = 100 - 60 = 40
+ * AQI = 500 (Severe) -> CleanAirScore = 0
+ */
+function convertAqiToCleanAirScore(aqi) {
+  const safeAqi = (typeof aqi === 'number' && !isNaN(aqi)) ? aqi : 75;
+  const score = Math.round(100 - (safeAqi / 5));
+  return Math.max(0, Math.min(100, score));
+}
+
+/**
  * Matches a walking route's waypoints to the nearest official CPCB monitoring stations
  * Calculates route-level pollution assessment using inverse distance weighting.
  * 
@@ -281,16 +298,31 @@ async function matchRouteToCpcbStations(waypoints = []) {
   if (!waypoints || waypoints.length === 0) {
     // Default to central Bengaluru station (City Railway Station)
     const fallback = stations[0];
+    const cleanAir = convertAqiToCleanAirScore(fallback.aqi);
     return {
       matchedStation: fallback,
+      rawCpcbAqi: fallback.aqi,
       routeAqi: fallback.aqi,
       category: fallback.category,
       categoryColor: fallback.categoryColor,
       healthImpact: fallback.healthImpact,
-      pollutionRisk: mapAqiToPollutionRisk(fallback.aqi),
-      cleanAirScore: 100 - mapAqiToPollutionRisk(fallback.aqi),
+      pollutionRisk: 100 - cleanAir,
+      cleanAirScore: cleanAir,
       distanceToStationKm: 0,
       dataSource: 'Central Pollution Control Board (CPCB) CAAQMS Station',
+      cleanAirDetails: {
+        metricLabel: 'CPCB Clean Air Score',
+        dataSource: 'Central Pollution Control Board (CPCB) Official Portal (airquality.cpcb.gov.in)',
+        formula: 'CleanAirScore = clamp(100 - AQI / 5, 0, 100)',
+        rawCpcbAqi: fallback.aqi,
+        cleanAirScore: cleanAir,
+        stationName: fallback.stationName,
+        stationLocality: fallback.locality,
+        stationDistanceKm: 0,
+        prominentPollutant: fallback.prominentPollutant || 'PM2.5',
+        observationTimestamp: fallback.lastUpdated,
+        disclaimer: 'Ambient air quality measured at nearest official CPCB CAAQMS monitoring station. CPCB monitors regional ambient air quality and does not measure individual street-level variations independently.'
+      },
       isEstimated: true,
       disclosure: 'Route-level AQI estimated from nearest official CPCB CAAQMS monitoring station.'
     };
@@ -339,13 +371,15 @@ async function matchRouteToCpcbStations(waypoints = []) {
 
   const routeAqi = totalWeight > 0 ? Math.round(weightedAqiSum / totalWeight) : closestStation.aqi;
   const categoryInfo = getCpcbCategory(routeAqi);
-  const pollutionRisk = mapAqiToPollutionRisk(routeAqi);
-  const cleanAirScore = Math.max(0, 100 - pollutionRisk);
+  const cleanAirScore = convertAqiToCleanAirScore(routeAqi);
+  const pollutionRisk = 100 - cleanAirScore;
+  const stationDistKm = Number(minOverallDist.toFixed(2));
 
   return {
     matchedStation: {
       id: closestStation.id,
       name: closestStation.stationName,
+      stationName: closestStation.stationName,
       locality: closestStation.locality,
       zoneType: closestStation.zoneType,
       lat: closestStation.lat,
@@ -353,21 +387,35 @@ async function matchRouteToCpcbStations(waypoints = []) {
       aqi: closestStation.aqi,
       category: closestStation.category,
       prominentPollutant: closestStation.prominentPollutant,
-      distanceToRouteKm: Number(minOverallDist.toFixed(2)),
+      distanceToRouteKm: stationDistKm,
       lastUpdated: closestStation.lastUpdated,
       agency: closestStation.agency,
       portalUrl: closestStation.portalUrl
     },
+    rawCpcbAqi: routeAqi,
     routeAqi,
     category: categoryInfo.category,
     categoryColor: categoryInfo.color,
     healthImpact: categoryInfo.healthImpact,
     pollutionRisk,
     cleanAirScore,
-    distanceToStationKm: Number(minOverallDist.toFixed(2)),
+    distanceToStationKm: stationDistKm,
     dataSource: 'Central Pollution Control Board (CPCB) CAAQMS Station',
-    isEstimated: true,
-    disclosure: `CPCB CAAQMS station reading from "${closestStation.stationName}" (${minOverallDist.toFixed(1)} km away). Route assessment estimated via Proximity and inverse-distance spatial modeling from official monitoring nodes; per-street sensor data is unavailable as individual streets do not possess standalone continuous monitoring towers.`
+    cleanAirDetails: {
+      metricLabel: 'CPCB Clean Air Score',
+      dataSource: 'Central Pollution Control Board (CPCB) Official Portal (airquality.cpcb.gov.in)',
+      formula: 'CleanAirScore = clamp(100 - AQI / 5, 0, 100)',
+      rawCpcbAqi: routeAqi,
+      cleanAirScore,
+      stationName: closestStation.stationName,
+      stationLocality: closestStation.locality,
+      stationDistanceKm: stationDistKm,
+      prominentPollutant: closestStation.prominentPollutant || 'PM2.5',
+      observationTimestamp: closestStation.lastUpdated,
+      disclaimer: 'Ambient air quality measured at nearest official CPCB CAAQMS monitoring station. CPCB monitors regional ambient air quality and does not measure individual street-level variations independently.'
+    },
+    isEstimated: totalWeight > 0,
+    disclosure: 'Route-level AQI estimated from nearest official CPCB CAAQMS monitoring station.'
   };
 }
 
@@ -400,6 +448,7 @@ module.exports = {
   OFFICIAL_BENGALURU_CPCB_STATIONS,
   getAllCpcbStations,
   matchRouteToCpcbStations,
+  convertAqiToCleanAirScore,
   mapAqiToPollutionRisk,
   getCpcbCategory,
   haversineDistance
