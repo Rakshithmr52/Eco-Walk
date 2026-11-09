@@ -94,5 +94,45 @@
       "reportsSubmitted": 0
     },
     "createdAt": "2026-11-09T04:24:42.693Z"
+  },
+  {
+    "id": "usr_1794226139973",
+    "name": "Dr. Jane Walker",
+    "email": "phase1_test_1794226139973@ecowalk.org",
+    "password": "SecurePassword123!",
+    "role": "user",
+    "preferences": {
+      "prioritizeAirQuality": true,
+      "prioritizeGreenery": true
+    },
+    "walkingSpeed": "moderate",
+    "stats": {
+      "totalDistanceKm": 0,
+      "totalWalks": 0,
+      "totalCalories": 0,
+      "co2SavedKg": 0,
+      "reportsSubmitted": 0
+    },
+    "createdAt": "2026-11-09T12:08:59.973Z"
+  },
+  {
+    "id": "usr_1794226309570",
+    "name": "Dr. Jane Walker",
+    "email": "phase1_test_1794226309569@ecowalk.org",
+    "password": "SecurePassword123!",
+    "role": "user",
+    "preferences": {
+      "prioritizeAirQuality": true,
+      "prioritizeGreenery": true
+    },
+    "walkingSpeed": "moderate",
+    "stats": {
+      "totalDistanceKm": 0,
+      "totalWalks": 0,
+      "totalCalories": 0,
+      "co2SavedKg": 0,
+      "reportsSubmitted": 0
+    },
+    "createdAt": "2026-11-09T12:11:49.570Z"
   }
 ]

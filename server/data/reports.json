@@ -1,5 +1,57 @@
 [
   {
+    "id": "rep_1794226311919",
+    "userId": "usr_1794226309570",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-09T12:11:51.919Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-09T12:11:51.923Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
+    "id": "rep_1794226140109",
+    "userId": "usr_1794226139973",
+    "userName": "Dr. Jane Walker",
+    "type": "pothole",
+    "title": "Deep pothole on MG Road pedestrian crossing",
+    "description": "Trip hazard for pedestrians near traffic signal",
+    "severity": "high",
+    "status": "verified",
+    "lat": 12.976,
+    "lng": 77.593,
+    "coordinates": [
+      12.976,
+      77.593
+    ],
+    "location": {
+      "address": "MG Road crossing"
+    },
+    "createdAt": "2026-11-09T12:09:00.109Z",
+    "confirmations": 1,
+    "confirmedBy": [
+      "community_walker"
+    ],
+    "verifiedAt": "2026-11-09T12:09:00.114Z",
+    "adminNotes": "Verified by Admin Inspector"
+  },
+  {
     "id": "rep_1794198282810",
     "userId": "usr_1794198282693",
     "userName": "Dr. Jane Walker",
