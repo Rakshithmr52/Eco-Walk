@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  Sparkles, 
-  Trees, 
-  ShieldCheck, 
-  Wind, 
-  Activity, 
+import {
+  Sparkles,
+  Trees,
+  ShieldCheck,
+  Wind,
+  Activity,
   Eye,
   Info,
   CheckCircle2
@@ -114,14 +114,14 @@ export default function RouteComparisonTable({
               const roadQuality = r.roadQualityScore !== undefined ? r.roadQualityScore : (r.effectiveRoadCondition || r.roadConditionScore || 85);
 
               return (
-                <tr 
+                <tr
                   key={r.id || index}
                   style={{
                     borderBottom: '1px solid var(--slate-200)',
-                    backgroundColor: isSelected 
-                      ? 'rgba(16, 185, 129, 0.08)' 
-                      : isRec 
-                        ? 'rgba(236, 253, 245, 0.55)' 
+                    backgroundColor: isSelected
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : isRec
+                        ? 'rgba(236, 253, 245, 0.55)'
                         : '#ffffff',
                     transition: 'background-color 0.15s ease'
                   }}
