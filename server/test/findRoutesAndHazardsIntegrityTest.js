@@ -1,7 +1,3 @@
-/**
- * EcoWalk Phase 1: Find Routes and Road Hazards Complete Integration Test Suite
- * Validates all 13 critical acceptance criteria from Section 6
- */
 
 const assert = require('assert');
 const http = require('http');
@@ -126,9 +122,9 @@ async function runIntegritySuite() {
       assert.strictEqual(res.status, 200);
       assert(Array.isArray(res.data.stations));
       assert(res.data.stations.length >= 10);
-      const btm = res.data.stations.find(s => 
-        (s.stationName && s.stationName.includes('BTM')) || 
-        (s.name && s.name.includes('BTM')) || 
+      const btm = res.data.stations.find(s =>
+        (s.stationName && s.stationName.includes('BTM')) ||
+        (s.name && s.name.includes('BTM')) ||
         (s.locality && s.locality.includes('BTM'))
       );
       assert(btm, 'BTM Layout CAAQMS station must be present');
